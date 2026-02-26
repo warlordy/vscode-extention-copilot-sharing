@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "copilot-sharing.helloWorld",
-        "title": "Hello World"
+        "command": "copilot-sharing.start-web-server",
+        "title": "Start Web Server for Copilot Sharing"
       }
     ]
   },

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>LLM Session Dialog UI</title>
+	<style>
+		:root {
+			--bg: #f2f4f7;
+			--panel: #ffffff;
+			--sidebar: #f7f8fa;
+			--primary: #07c160;
+			--primary-hover: #05a850;
+			--danger: #e5484d;
+			--danger-hover: #cc3f44;
+			--text: #1f2329;
+			--muted: #7d8592;
+			--line: #e7e9ee;
+			--user-msg: #95ec69;
+			--agent-msg: #ffffff;
+			--shadow: 0 10px 35px rgba(35, 45, 65, 0.12);
+			--max-width: 1160px;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+			background: linear-gradient(150deg, #eaf4ef, #f3f5f9 55%, #ebf2ff);
+			color: var(--text);
+			min-height: 100vh;
+			height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 16px;
+			overflow: hidden;
+		}
+
+		.app {
+			width: 100%;
+			max-width: var(--max-width);
+			height: min(92vh, 800px);
+			background: var(--panel);
+			border-radius: 18px;
+			box-shadow: var(--shadow);
+			overflow: hidden;
+			display: grid;
+			grid-template-columns: 340px 1fr;
+			border: 1px solid rgba(10, 22, 70, 0.05);
+			min-height: 0;
+		}
+
+		.sidebar {
+			background: var(--sidebar);
+			border-right: 1px solid var(--line);
+			display: flex;
+			flex-direction: column;
+			min-width: 0;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.sidebar-header {
+			padding: 12px;
+			border-bottom: 1px solid var(--line);
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			background: #fbfcfd;
+		}
+
+		.sidebar-title {
+			font-size: 16px;
+			font-weight: 700;
+			flex: 1;
+		}
+
+		.primary-btn,
+		.action-btn,
+		.send-btn,
+		.mobile-back {
+			border: none;
+			border-radius: 10px;
+			cursor: pointer;
+			font-family: inherit;
+			transition: background-color 0.16s ease, transform 0.1s ease;
+		}
+
+		.primary-btn,
+		.send-btn {
+			background: var(--primary);
+			color: #fff;
+			font-weight: 600;
+		}
+
+		.primary-btn:hover,
+		.send-btn:hover {
+			background: var(--primary-hover);
+		}
+
+		.primary-btn {
+			padding: 8px 12px;
+			font-size: 13px;
+		}
+
+		.session-count {
+			padding: 8px 14px;
+			font-size: 12px;
+			color: var(--muted);
+			border-bottom: 1px solid var(--line);
+		}
+
+		.session-list {
+			margin: 0;
+			padding: 8px;
+			list-style: none;
+			overflow-y: auto;
+			overflow-x: hidden;
+			flex: 1;
+			min-height: 0;
+			scrollbar-gutter: stable;
+		}
+
+		.session-item {
+			border-radius: 12px;
+			padding: 10px;
+			display: grid;
+			grid-template-columns: 38px 1fr auto;
+			gap: 10px;
+			align-items: center;
+			cursor: pointer;
+			margin-bottom: 4px;
+			transition: background-color 0.15s ease;
+		}
+
+		.session-item:hover {
+			background: #eef2f8;
+		}
+
+		.session-item.active {
+			background: #e6f8ef;
+		}
+
+		.session-icon {
+			width: 38px;
+			height: 38px;
+			border-radius: 10px;
+			display: grid;
+			place-items: center;
+			background: #fff;
+			border: 1px solid rgba(10, 22, 70, 0.08);
+			font-size: 14px;
+			font-weight: 700;
+			color: #455468;
+		}
+
+		.session-main {
+			min-width: 0;
+			display: flex;
+			flex-direction: column;
+			gap: 3px;
+		}
+
+		.session-top {
+			display: flex;
+			justify-content: space-between;
+			gap: 8px;
+			font-size: 14px;
+		}
+
+		.session-name {
+			font-weight: 600;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.session-time,
+		.session-preview {
+			font-size: 12px;
+			color: var(--muted);
+		}
+
+		.session-preview {
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.session-actions {
+			display: flex;
+			gap: 4px;
+		}
+
+		.action-btn {
+			padding: 6px 7px;
+			font-size: 12px;
+			background: #edf1f7;
+			color: #334155;
+		}
+
+		.action-btn:hover {
+			background: #e3e8f2;
+		}
+
+		.action-btn.delete {
+			background: #fdeced;
+			color: #b4232f;
+		}
+
+		.action-btn.delete:hover {
+			background: #f9dde0;
+		}
+
+		.dialog {
+			display: flex;
+			flex-direction: column;
+			min-width: 0;
+			min-height: 0;
+			overflow: hidden;
+		}
+
+		.dialog-header {
+			height: 64px;
+			border-bottom: 1px solid var(--line);
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 16px;
+			gap: 12px;
+		}
+
+		.dialog-title {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			min-width: 0;
+		}
+
+		.dialog-title-text {
+			font-size: 17px;
+			font-weight: 700;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.dialog-subtitle {
+			font-size: 12px;
+			color: var(--muted);
+			white-space: nowrap;
+		}
+
+		.mobile-back {
+			display: none;
+			background: #f2f5fa;
+			color: #1f2937;
+			padding: 6px 10px;
+		}
+
+		.messages {
+			flex: 1;
+			min-height: 0;
+			overflow-y: auto;
+			overflow-x: hidden;
+			padding: 14px 18px;
+			background: #f5f7fa;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			scrollbar-gutter: stable;
+			overscroll-behavior: contain;
+		}
+
+		.time-label {
+			align-self: center;
+			font-size: 12px;
+			color: var(--muted);
+			background: rgba(30, 40, 60, 0.08);
+			border-radius: 10px;
+			padding: 3px 8px;
+			margin: 8px 0;
+		}
+
+		.message-row {
+			display: flex;
+			gap: 10px;
+			align-items: flex-end;
+		}
+
+		.message-row.user {
+			justify-content: flex-end;
+		}
+
+		.message-row.agent {
+			justify-content: flex-start;
+		}
+
+		.message-row.typing .bubble {
+			color: var(--muted);
+			font-style: italic;
+		}
+
+		.typing-dots {
+			display: inline-flex;
+			gap: 3px;
+			margin-left: 6px;
+			vertical-align: middle;
+		}
+
+		.typing-dots span {
+			width: 5px;
+			height: 5px;
+			border-radius: 50%;
+			background: #98a2b3;
+			opacity: 0.35;
+			animation: blink 1.2s infinite;
+		}
+
+		.typing-dots span:nth-child(2) {
+			animation-delay: 0.2s;
+		}
+
+		.typing-dots span:nth-child(3) {
+			animation-delay: 0.4s;
+		}
+
+		@keyframes blink {
+			0%,
+			80%,
+			100% {
+				opacity: 0.25;
+			}
+			40% {
+				opacity: 1;
+			}
+		}
+
+		.role-tag {
+			width: 30px;
+			height: 30px;
+			border-radius: 8px;
+			border: 1px solid rgba(0, 0, 0, 0.07);
+			display: grid;
+			place-items: center;
+			font-size: 11px;
+			font-weight: 700;
+			color: #49566a;
+			background: #fff;
+			flex-shrink: 0;
+		}
+
+		.bubble {
+			max-width: min(75%, 640px);
+			padding: 10px 12px;
+			border-radius: 12px;
+			font-size: 14px;
+			line-height: 1.45;
+			word-break: break-word;
+			white-space: pre-wrap;
+			box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+			border: 1px solid rgba(0, 0, 0, 0.04);
+		}
+
+		.message-row.user .bubble {
+			background: var(--user-msg);
+		}
+
+		.message-row.agent .bubble {
+			background: var(--agent-msg);
+		}
+
+		.empty {
+			margin: auto;
+			text-align: center;
+			font-size: 14px;
+			color: var(--muted);
+		}
+
+		.input-area {
+			border-top: 1px solid var(--line);
+			background: #fff;
+			padding: 10px 12px 12px;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			flex-shrink: 0;
+			position: relative;
+			z-index: 1;
+		}
+
+		.input-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.input-hint {
+			font-size: 12px;
+			color: var(--muted);
+		}
+
+		.send-btn {
+			padding: 8px 14px;
+			min-width: 94px;
+		}
+
+		.prompt-input {
+			width: 100%;
+			min-height: 90px;
+			max-height: 210px;
+			border: 1px solid var(--line);
+			border-radius: 12px;
+			resize: none;
+			padding: 10px 12px;
+			outline: none;
+			font-size: 14px;
+			font-family: inherit;
+			line-height: 1.45;
+			background: #fff;
+		}
+
+		.prompt-input:focus {
+			border-color: #9ed7b8;
+			box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.16);
+		}
+
+		@media (max-width: 900px) {
+			body {
+				padding: 0;
+				background: var(--bg);
+			}
+
+			.app {
+				height: 100vh;
+				max-width: none;
+				border-radius: 0;
+			}
+		}
+
+		@media (max-width: 760px) {
+			.app {
+				grid-template-columns: 1fr;
+			}
+
+			.sidebar,
+			.dialog {
+				height: 100vh;
+			}
+
+			.app.show-dialog .sidebar {
+				display: none;
+			}
+
+			.app:not(.show-dialog) .dialog {
+				display: none;
+			}
+
+			.mobile-back {
+				display: inline-flex;
+			}
+
+			.bubble {
+				max-width: 88%;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="app" id="app">
+		<aside class="sidebar">
+			<div class="sidebar-header">
+				<div class="sidebar-title">Sessions</div>
+				<button class="primary-btn" id="newSessionBtn" type="button">+ New</button>
+			</div>
+			<div class="session-count" id="sessionCountLabel">0 sessions</div>
+			<ul class="session-list" id="sessionList"></ul>
+		</aside>
+
+		<main class="dialog">
+			<header class="dialog-header">
+				<div class="dialog-title">
+					<button class="mobile-back" id="mobileBackBtn" aria-label="Back to sessions">← Back</button>
+					<div>
+						<div class="dialog-title-text" id="dialogTitle">Select a session</div>
+						<div class="dialog-subtitle" id="dialogSubtitle">User ↔ LLM/Agent</div>
+					</div>
+				</div>
+			</header>
+
+			<section class="messages" id="messages">
+				<div class="empty">Create or select a session to start your dialog</div>
+			</section>
+
+			<footer class="input-area">
+				<div class="input-row">
+					<div class="input-hint">Enter sends. Shift+Enter adds a newline.</div>
+					<button class="send-btn" id="sendBtn" type="button">Send</button>
+				</div>
+				<textarea
+					id="promptInput"
+					class="prompt-input"
+					placeholder="Type your request to LLM/Agent..."
+				></textarea>
+			</footer>
+		</main>
+	</div>
+
+	<script>
+		// ====== Storage keys ======
+		const STORAGE_KEY = "llm-dialog-sessions-v1";
+		const ACTIVE_KEY = "llm-dialog-active-session";
+
+		// ====== Seed data for first launch ======
+		const DEFAULT_SESSIONS = [
+			{
+				id: "s1",
+				name: "Project Planning",
+				messages: [
+					{ id: "m1", role: "user", text: "Help me break down this project into milestones.", timestamp: Date.now() - 1000 * 60 * 28 },
+					{ id: "m2", role: "agent", text: "Sure. We can split it into discovery, implementation, and validation phases.", timestamp: Date.now() - 1000 * 60 * 27 }
+				]
+			},
+			{
+				id: "s2",
+				name: "Prompt Experiments",
+				messages: [
+					{ id: "m3", role: "user", text: "What is a good prompt template for code review?", timestamp: Date.now() - 1000 * 60 * 120 }
+				]
+			}
+		];
+
+		// ====== App state ======
+		let sessions = [];
+		let activeSessionId = null;
+		let typingSessionId = null;
+		let typingTimeoutId = null;
+
+		// ====== DOM references ======
+		const appEl = document.getElementById("app");
+		const newSessionBtnEl = document.getElementById("newSessionBtn");
+		const sessionCountLabelEl = document.getElementById("sessionCountLabel");
+		const sessionListEl = document.getElementById("sessionList");
+		const dialogTitleEl = document.getElementById("dialogTitle");
+		const dialogSubtitleEl = document.getElementById("dialogSubtitle");
+		const messagesEl = document.getElementById("messages");
+		const promptInputEl = document.getElementById("promptInput");
+		const sendBtnEl = document.getElementById("sendBtn");
+		const mobileBackBtnEl = document.getElementById("mobileBackBtn");
+
+		// ====== Utility functions ======
+		function formatTime(timestamp) {
+			const date = new Date(timestamp);
+			const hh = String(date.getHours()).padStart(2, "0");
+			const mm = String(date.getMinutes()).padStart(2, "0");
+			return `${hh}:${mm}`;
+		}
+
+		function formatDateTime(timestamp) {
+			const date = new Date(timestamp);
+			const y = date.getFullYear();
+			const m = String(date.getMonth() + 1).padStart(2, "0");
+			const d = String(date.getDate()).padStart(2, "0");
+			return `${y}-${m}-${d} ${formatTime(timestamp)}`;
+		}
+
+		function escapeHtml(value) {
+			return String(value)
+				.replaceAll("&", "&amp;")
+				.replaceAll("<", "&lt;")
+				.replaceAll(">", "&gt;")
+				.replaceAll('"', "&quot;")
+				.replaceAll("'", "&#39;");
+		}
+
+		function saveState() {
+			// Persist sessions + messages on each change.
+			localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+			if (activeSessionId) {
+				localStorage.setItem(ACTIVE_KEY, activeSessionId);
+			}
+		}
+
+		function loadState() {
+			// Load saved sessions and active session on app launch.
+			const stored = localStorage.getItem(STORAGE_KEY);
+			if (stored) {
+				try {
+					sessions = JSON.parse(stored);
+				} catch {
+					sessions = structuredClone(DEFAULT_SESSIONS);
+				}
+			} else {
+				sessions = structuredClone(DEFAULT_SESSIONS);
+			}
+
+			const storedActive = localStorage.getItem(ACTIVE_KEY);
+			const found = sessions.find((item) => item.id === storedActive);
+			activeSessionId = found ? found.id : sessions[0]?.id || null;
+		}
+
+		function getActiveSession() {
+			return sessions.find((item) => item.id === activeSessionId) || null;
+		}
+
+		function getPreview(session) {
+			const last = session.messages[session.messages.length - 1];
+			return last ? last.text : "No messages yet";
+		}
+
+		function sortSessionsByLatest() {
+			sessions.sort((a, b) => {
+				const aTime = a.messages[a.messages.length - 1]?.timestamp || 0;
+				const bTime = b.messages[b.messages.length - 1]?.timestamp || 0;
+				return bTime - aTime;
+			});
+		}
+
+		function createSession(name) {
+			const title = (name || "").trim() || `New Session ${sessions.length + 1}`;
+			const newSession = {
+				id: `s_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
+				name: title,
+				messages: []
+			};
+			sessions.unshift(newSession);
+			activeSessionId = newSession.id;
+			renderAll();
+			saveState();
+		}
+
+		function renameSession(sessionId) {
+			const target = sessions.find((item) => item.id === sessionId);
+			if (!target) return;
+			const next = window.prompt("Rename session", target.name);
+			if (next === null) return;
+			const trimmed = next.trim();
+			if (!trimmed) return;
+			target.name = trimmed;
+			renderAll();
+			saveState();
+		}
+
+		function deleteSession(sessionId) {
+			const target = sessions.find((item) => item.id === sessionId);
+			if (!target) return;
+			const ok = window.confirm(`Delete session "${target.name}"?`);
+			if (!ok) return;
+
+			sessions = sessions.filter((item) => item.id !== sessionId);
+			if (!sessions.length) {
+				createSession("New Session");
+				return;
+			}
+
+			if (activeSessionId === sessionId) {
+				activeSessionId = sessions[0].id;
+			}
+
+			renderAll();
+			saveState();
+		}
+
+		function addMessageToActiveSession(role, text) {
+			const active = getActiveSession();
+			if (!active) return;
+
+			active.messages.push({
+				id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
+				role,
+				text,
+				timestamp: Date.now()
+			});
+		}
+
+		function showTypingIndicator(sessionId) {
+			typingSessionId = sessionId;
+			if (typingTimeoutId) {
+				window.clearTimeout(typingTimeoutId);
+			}
+
+			typingTimeoutId = window.setTimeout(() => {
+				typingSessionId = null;
+				typingTimeoutId = null;
+				renderAll();
+			}, 12000);
+		}
+
+		function hideTypingIndicator(sessionId) {
+			if (typingTimeoutId) {
+				window.clearTimeout(typingTimeoutId);
+				typingTimeoutId = null;
+			}
+
+			if (!sessionId || typingSessionId === sessionId) {
+				typingSessionId = null;
+			}
+		}
+
+		// ====== Rendering ======
+		function renderSessionList() {
+			sortSessionsByLatest();
+			sessionCountLabelEl.textContent = `${sessions.length} sessions`;
+
+			sessionListEl.innerHTML = sessions
+				.map((session) => {
+					const latest = session.messages[session.messages.length - 1];
+					const activeClass = session.id === activeSessionId ? "active" : "";
+					const iconText = escapeHtml(session.name.slice(0, 1).toUpperCase() || "S");
+
+					return `
+						<li class="session-item ${activeClass}" data-id="${session.id}" role="button" tabindex="0" aria-label="Open ${escapeHtml(session.name)}">
+							<div class="session-icon">${iconText}</div>
+							<div class="session-main">
+								<div class="session-top">
+									<span class="session-name">${escapeHtml(session.name)}</span>
+									<span class="session-time">${latest ? formatTime(latest.timestamp) : ""}</span>
+								</div>
+								<div class="session-preview">${escapeHtml(getPreview(session))}</div>
+							</div>
+							<div class="session-actions">
+								<button class="action-btn rename" type="button" data-action="rename" data-id="${session.id}" aria-label="Rename session">✎</button>
+								<button class="action-btn delete" type="button" data-action="delete" data-id="${session.id}" aria-label="Delete session">🗑</button>
+							</div>
+						</li>
+					`;
+				})
+				.join("");
+		}
+
+		function renderMessages() {
+			const active = getActiveSession();
+			if (!active) {
+				dialogTitleEl.textContent = "Select a session";
+				dialogSubtitleEl.textContent = "User ↔ LLM/Agent";
+				messagesEl.innerHTML = `<div class="empty">Create or select a session to start your dialog</div>`;
+				return;
+			}
+
+			dialogTitleEl.textContent = active.name;
+			dialogSubtitleEl.textContent = "User ↔ LLM/Agent";
+
+			if (!active.messages.length) {
+				messagesEl.innerHTML = `<div class="empty">No messages yet. Type below to start.</div>`;
+				return;
+			}
+
+			const parts = [];
+			let lastTimeLabel = "";
+
+			active.messages.forEach((msg) => {
+				const timeLabel = formatDateTime(msg.timestamp);
+				if (timeLabel !== lastTimeLabel) {
+					parts.push(`<div class="time-label">${timeLabel}</div>`);
+					lastTimeLabel = timeLabel;
+				}
+
+				parts.push(`
+					<div class="message-row ${msg.role}">
+						${msg.role === "agent" ? `<div class="role-tag">AI</div>` : ""}
+						<div class="bubble">${escapeHtml(msg.text)}</div>
+						${msg.role === "user" ? `<div class="role-tag">You</div>` : ""}
+					</div>
+				`);
+			});
+
+			if (typingSessionId === active.id) {
+				parts.push(`
+					<div class="message-row agent typing">
+						<div class="role-tag">AI</div>
+						<div class="bubble">LLM is typing...<span class="typing-dots"><span></span><span></span><span></span></span></div>
+					</div>
+				`);
+			}
+
+			messagesEl.innerHTML = parts.join("");
+			messagesEl.scrollTop = messagesEl.scrollHeight;
+		}
+
+		function renderAll() {
+			renderSessionList();
+			renderMessages();
+		}
+
+		// ====== User actions ======
+		function openSession(sessionId, fromListClick = false) {
+			const target = sessions.find((item) => item.id === sessionId);
+			if (!target) return;
+			activeSessionId = target.id;
+			renderAll();
+			saveState();
+
+			if (fromListClick && window.matchMedia("(max-width: 760px)").matches) {
+				appEl.classList.add("show-dialog");
+			}
+		}
+
+		function sendUserMessage() {
+			const text = promptInputEl.value.trim();
+			if (!text) return;
+			if (!getActiveSession()) return;
+
+			// Add user message to active session and persist.
+			addMessageToActiveSession("user", text);
+			showTypingIndicator(activeSessionId);
+			promptInputEl.value = "";
+			renderAll();
+			saveState();
+			promptInputEl.focus();
+
+			// Integration hook for your own request sending/parsing implementation.
+			if (typeof window.onUserSend === "function") {
+				window.onUserSend({
+					sessionId: activeSessionId,
+					text
+				});
+			}
+		}
+
+		// Public helper: call this after receiving model response in your own logic.
+		window.appendAgentMessage = function appendAgentMessage(sessionId, text) {
+			const target = sessions.find((item) => item.id === sessionId);
+			if (!target || !String(text || "").trim()) return;
+			hideTypingIndicator(sessionId);
+
+			target.messages.push({
+				id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
+				role: "agent",
+				text: String(text),
+				timestamp: Date.now()
+			});
+
+			renderAll();
+			saveState();
+		};
+
+		// ====== Event binding ======
+		newSessionBtnEl.addEventListener("click", () => {
+			const input = window.prompt("Session name", `New Session ${sessions.length + 1}`);
+			if (input === null) return;
+			createSession(input);
+			if (window.matchMedia("(max-width: 760px)").matches) {
+				appEl.classList.add("show-dialog");
+			}
+		});
+
+		sessionListEl.addEventListener("click", (event) => {
+			const target = event.target;
+			if (!(target instanceof HTMLElement)) return;
+
+			const actionButton = target.closest("button[data-action]");
+			if (actionButton) {
+				event.stopPropagation();
+				const action = actionButton.getAttribute("data-action");
+				const sessionId = actionButton.getAttribute("data-id");
+				if (!sessionId) return;
+				if (action === "rename") renameSession(sessionId);
+				if (action === "delete") deleteSession(sessionId);
+				return;
+			}
+
+			const item = target.closest(".session-item");
+			if (!item) return;
+			openSession(item.dataset.id, true);
+		});
+
+		sessionListEl.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter" && event.key !== " ") return;
+			const item = event.target.closest(".session-item");
+			if (!item) return;
+			event.preventDefault();
+			openSession(item.dataset.id, true);
+		});
+
+		sendBtnEl.addEventListener("click", sendUserMessage);
+
+		promptInputEl.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" && !event.shiftKey) {
+				event.preventDefault();
+				sendUserMessage();
+			}
+		});
+
+		mobileBackBtnEl.addEventListener("click", () => {
+			appEl.classList.remove("show-dialog");
+		});
+
+		window.addEventListener("resize", () => {
+			if (!window.matchMedia("(max-width: 760px)").matches) {
+				appEl.classList.remove("show-dialog");
+			}
+		});
+
+		// ====== Bootstrapping ======
+		loadState();
+		if (!sessions.length) {
+			createSession("New Session");
+		}
+		renderAll();
+	</script>
+</body>
+</html>
