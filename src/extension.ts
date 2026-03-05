@@ -28,28 +28,25 @@ export function activate(context: vscode.ExtensionContext) {
 				? `LAN URL: ${networkUrls[0]}`
 				: 'No LAN IPv4 address detected on this machine.';
 			const openUrl = localUrl;
-			void vscode.window.showInformationMessage(
-				`Copilot Sharing server started on port ${usedPort}. Local: ${localUrl}. ${lanHint}`
+			const openAction = 'Open Web App';
+			const copyAction = 'Copy LAN URL';
+			const action = await vscode.window.showInformationMessage(
+				`Copilot Sharing server started on port ${usedPort}. Local: ${localUrl}. ${lanHint}`,
+				openAction,
+				copyAction
 			);
 
-			const action = await vscode.window.showQuickPick(
-				[
-					{ label: '$(link-external) Open Web App', value: 'open' },
-					{ label: '$(clippy) Copy LAN URL', value: 'copy' }
-				],
-				{
-					title: 'Copilot Sharing Actions',
-					placeHolder: 'Choose what to do next'
-				}
-			);
-
-			if (action?.value === 'open') {
+			if (action === openAction) {
 				await vscode.env.openExternal(vscode.Uri.parse(openUrl));
 			}
 
-			if (action?.value === 'copy' && networkUrls.length > 0) {
-				await vscode.env.clipboard.writeText(networkUrls[0]);
-				void vscode.window.showInformationMessage(`Copied: ${networkUrls[0]}`);
+			if (action === copyAction) {
+				if (networkUrls.length > 0) {
+					await vscode.env.clipboard.writeText(networkUrls[0]);
+					void vscode.window.showInformationMessage(`Copied: ${networkUrls[0]}`);
+				} else {
+					void vscode.window.showWarningMessage('No LAN IPv4 URL is currently available to copy.');
+				}
 			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
