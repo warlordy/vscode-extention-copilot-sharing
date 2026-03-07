@@ -11,6 +11,7 @@ let lanUrls: string[] = [];
 let statusBarItem: vscode.StatusBarItem | undefined;
 
 const MAX_BODY_SIZE = 1024 * 1024;
+const EXTENSION_NAME_FOR_UI = "Copilot Share";
 
 type ServerStartResult = {
 	localUrl: string;
@@ -65,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-	statusBarItem.name = 'Copilot Sharing Controls';
+	statusBarItem.name = `${EXTENSION_NAME_FOR_UI} Controls`;
 	statusBarItem.command = openMenuCommand;
 	updateStatusBarItem();
 	statusBarItem.show();
@@ -110,7 +111,7 @@ function getServerRuntimeState(): {
 			localUrl: serverUrl ?? null,
 			networkUrls: lanUrls,
 			usedPort,
-			statusText: `Copilot Sharing is running on port ${usedPort}.`
+			statusText: `${EXTENSION_NAME_FOR_UI} is running on port ${usedPort}.`
 		};
 	}
 
@@ -119,7 +120,7 @@ function getServerRuntimeState(): {
 		localUrl: null,
 		networkUrls: [],
 		usedPort: null,
-		statusText: 'Copilot Sharing is stopped.'
+		statusText: `${EXTENSION_NAME_FOR_UI} is stopped.`
 	};
 }
 
@@ -132,13 +133,13 @@ function updateStatusBarItem(): void {
 	const [runningCodicon, stoppedCodicon] = STATUS_CODICON_OPTIONS[selectedStatusCodiconKey];
 
 	if (state.isRunning && state.usedPort !== null) {
-		statusBarItem.text = `$(${runningCodicon}) Copilot Sharing`;
-		statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing Controls.`;
+		statusBarItem.text = `$(${runningCodicon}) ${EXTENSION_NAME_FOR_UI}`;
+		statusBarItem.tooltip = `${state.statusText}\nClick to open ${EXTENSION_NAME_FOR_UI} Controls.`;
 		return;
 	}
 
-	statusBarItem.text = `$(${stoppedCodicon}) Copilot Sharing`;
-	statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing Controls.`;
+	statusBarItem.text = `$(${stoppedCodicon}) ${EXTENSION_NAME_FOR_UI}`;
+	statusBarItem.tooltip = `${state.statusText}\nClick to open ${EXTENSION_NAME_FOR_UI} Controls.`;
 }
 
 async function openControlMenu(context: vscode.ExtensionContext): Promise<void> {
@@ -166,7 +167,7 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 		];
 
 		const picked = await vscode.window.showQuickPick(items, {
-			placeHolder: 'Copilot Sharing Controls',
+			placeHolder: `${EXTENSION_NAME_FOR_UI} Controls`,
 			matchOnDescription: true,
 			matchOnDetail: true
 		});
@@ -181,8 +182,8 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 				const started = await startWebServer(context);
 				updateStatusBarItem();
 				const msg = !isRunning
-					? `Copilot Sharing started on port ${started.usedPort}.`
-					: `Copilot Sharing is already running on port ${started.usedPort}.`;
+					? `${EXTENSION_NAME_FOR_UI} started on port ${started.usedPort}.`
+					: `${EXTENSION_NAME_FOR_UI} is already running on port ${started.usedPort}.`;
 				void vscode.window.showInformationMessage(msg);
 				break;
 			}
@@ -190,14 +191,14 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 				const { isRunning } = isServerRunning();
 				await stopWebServer();
 				updateStatusBarItem();
-				const msg = isRunning ? 'Copilot Sharing has stopped.' : 'Copilot Sharing is already stopped.';
+				const msg = isRunning ? `${EXTENSION_NAME_FOR_UI} has stopped.` : `${EXTENSION_NAME_FOR_UI} is already stopped.`;
 				void vscode.window.showInformationMessage(msg);
 				break;
 			}
 			case 'open': {
 				const latestState = getServerRuntimeState();
 				if (!latestState.localUrl) {
-					void vscode.window.showWarningMessage('Copilot Sharing is not running. Start the sharing first.');
+					void vscode.window.showWarningMessage(`${EXTENSION_NAME_FOR_UI} is not running. Start the sharing first.`);
 					break;
 				}
 
@@ -207,7 +208,7 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 			case 'copyLocal': {
 				const latestState = getServerRuntimeState();
 				if (!latestState.localUrl) {
-					void vscode.window.showWarningMessage('Copilot Sharing is not running. Start the sharing first.');
+					void vscode.window.showWarningMessage(`${EXTENSION_NAME_FOR_UI} is not running. Start the sharing first.`);
 					break;
 				}
 
