@@ -86,13 +86,37 @@ function updateStatusBarItem(): void {
 	}
 
 	const state = getServerRuntimeState();
+
+	// https://microsoft.github.io/vscode-codicons/dist/codicon.html
+	const codicons = {
+		// matched codicons
+		eys: ['eye', 'eye-closed'],
+		beaker: ['beaker', 'beaker-stop'],
+		chat: ['chat-sparkle', 'chat-sparkle-error'],
+		copilot: ['copilot', 'copilot-snooze'],
+		run: ['run-coverage', 'run-errors'],
+		search: ['search-sparkle', 'search-stop'],
+		sync: ['sync', 'sync-ignored'],
+		vm: ['vm-running', 'vm-outline'],
+		lock: ['lock', 'unlock'],
+		mute: ['unmute', 'mute'],
+
+		// unmatched codicons
+		share: ['live-share', 'close-all'],
+		broad: ['broadcast', 'circle-slash'],
+		radio: ['radio-tower', 'circle-slash'],
+		rocket: ['rocket', 'circle-slash'],
+	};
+	const runningCodicon = codicons.eys[0];
+	const stoppedCodicon = codicons.eys[1];
+
 	if (state.isRunning && state.usedPort !== null) {
-		statusBarItem.text = `$(broadcast) Copilot Sharing`;
+		statusBarItem.text = `$(${runningCodicon}) Copilot Sharing`;
 		statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing controls.`;
 		return;
 	}
 
-	statusBarItem.text = '$(circle-slash) Copilot Sharing';
+	statusBarItem.text = `$(${stoppedCodicon}) Copilot Sharing`;
 	statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing controls.`;
 }
 
@@ -100,13 +124,13 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 	while (true) {
 		const state = getServerRuntimeState();
 		const items: ControlMenuItem[] = [
-			{ label: 'Server', kind: vscode.QuickPickItemKind.Separator },
+			{ label: 'Service', kind: vscode.QuickPickItemKind.Separator },
 			{
-				label: state.isRunning ? '$(check) HTTP server: Running' : '$(circle-slash) HTTP server: Stopped',
+				label: state.isRunning ? '$(check) HTTP service: Running' : '$(circle-slash) HTTP service: Stopped',
 				detail: state.statusText
 			},
-			{ label: '$(play) Start server', action: 'start' },
-			{ label: '$(debug-stop) Stop server', action: 'stop' },
+			{ label: '$(play) Start sharing', action: 'start' },
+			{ label: '$(debug-stop) Stop sharing', action: 'stop' },
 			{ label: 'Links', kind: vscode.QuickPickItemKind.Separator },
 			{ label: '$(globe) Open web', action: 'open' },
 			{ label: '$(copy) Copy Local URL', action: 'copyLocal' },
@@ -127,18 +151,18 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 			case 'start': {
 				const started = await startWebServer(context);
 				updateStatusBarItem();
-				void vscode.window.showInformationMessage(`Copilot Sharing server started on port ${started.usedPort}.`);
+				void vscode.window.showInformationMessage(`Copilot Sharing started on port ${started.usedPort}.`);
 				break;
 			}
 			case 'stop':
 				await stopWebServer();
 				updateStatusBarItem();
-				void vscode.window.showInformationMessage('Copilot Sharing server stopped.');
+				void vscode.window.showInformationMessage('Copilot Sharing stopped.');
 				break;
 			case 'open': {
 				const latestState = getServerRuntimeState();
 				if (!latestState.localUrl) {
-					void vscode.window.showWarningMessage('Server is not running. Start the server first.');
+					void vscode.window.showWarningMessage('Copilot Sharing is not running. Start the sharing first.');
 					break;
 				}
 
@@ -148,7 +172,7 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 			case 'copyLocal': {
 				const latestState = getServerRuntimeState();
 				if (!latestState.localUrl) {
-					void vscode.window.showWarningMessage('Server is not running. Start the server first.');
+					void vscode.window.showWarningMessage('Copilot Sharing is not running. Start the sharing first.');
 					break;
 				}
 
