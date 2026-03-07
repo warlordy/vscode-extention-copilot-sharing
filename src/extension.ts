@@ -50,6 +50,17 @@ export async function deactivate() {
 	await stopWebServer();
 }
 
+function isServerRunning(): { isRunning: boolean; usedPort: number | null } {
+	const activeAddress = webServer?.address();
+	const usedPort = activeAddress && typeof activeAddress !== 'string' ? activeAddress.port : null;
+	const isRunning = Boolean(webServer && serverUrl && usedPort !== null);
+
+	return {
+		isRunning,
+		usedPort
+	};
+}
+
 function getServerRuntimeState(): {
 	isRunning: boolean;
 	localUrl: string | null;
@@ -57,9 +68,7 @@ function getServerRuntimeState(): {
 	usedPort: number | null;
 	statusText: string;
 } {
-	const activeAddress = webServer?.address();
-	const usedPort = activeAddress && typeof activeAddress !== 'string' ? activeAddress.port : null;
-	const isRunning = Boolean(webServer && serverUrl && usedPort !== null);
+	const { isRunning, usedPort } = isServerRunning();
 
 	if (isRunning) {
 		return {
@@ -67,7 +76,7 @@ function getServerRuntimeState(): {
 			localUrl: serverUrl ?? null,
 			networkUrls: lanUrls,
 			usedPort,
-			statusText: `Copilot Sharing started on port ${usedPort}.`
+			statusText: `Copilot Sharing is running on port ${usedPort}.`
 		};
 	}
 
@@ -105,19 +114,19 @@ function updateStatusBarItem(): void {
 		share: ['live-share', 'close-all'],
 		broad: ['broadcast', 'circle-slash'],
 		radio: ['radio-tower', 'circle-slash'],
-		rocket: ['rocket', 'circle-slash'],
+		rocket: ['rocket', 'circle-slash']
 	};
 	const runningCodicon = codicons.eys[0];
 	const stoppedCodicon = codicons.eys[1];
 
 	if (state.isRunning && state.usedPort !== null) {
 		statusBarItem.text = `$(${runningCodicon}) Copilot Sharing`;
-		statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing controls.`;
+		statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing Controls.`;
 		return;
 	}
 
 	statusBarItem.text = `$(${stoppedCodicon}) Copilot Sharing`;
-	statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing controls.`;
+	statusBarItem.tooltip = `${state.statusText}\nClick to open Copilot Sharing Controls.`;
 }
 
 async function openControlMenu(context: vscode.ExtensionContext): Promise<void> {
@@ -126,13 +135,13 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 		const items: ControlMenuItem[] = [
 			{ label: 'Service', kind: vscode.QuickPickItemKind.Separator },
 			{
-				label: state.isRunning ? '$(check) HTTP service: Running' : '$(circle-slash) HTTP service: Stopped',
+				label: state.isRunning ? '$(check) HTTP Service: Running' : '$(circle-slash) HTTP Service: Stopped',
 				detail: state.statusText
 			},
-			{ label: '$(play) Start sharing', action: 'start' },
-			{ label: '$(debug-stop) Stop sharing', action: 'stop' },
+			{ label: '$(play) Start Sharing', action: 'start' },
+			{ label: '$(debug-stop) Stop Sharing', action: 'stop' },
 			{ label: 'Links', kind: vscode.QuickPickItemKind.Separator },
-			{ label: '$(globe) Open web', action: 'open' },
+			{ label: '$(globe) Open Web', action: 'open' },
 			{ label: '$(copy) Copy Local URL', action: 'copyLocal' },
 			{ label: '$(copy) Copy LAN URL', action: 'copyLan' }
 		];
@@ -149,16 +158,23 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 
 		switch (picked.action) {
 			case 'start': {
+				const { isRunning } = isServerRunning();
 				const started = await startWebServer(context);
 				updateStatusBarItem();
-				void vscode.window.showInformationMessage(`Copilot Sharing started on port ${started.usedPort}.`);
+				const msg = !isRunning
+					? `Copilot Sharing started on port ${started.usedPort}.`
+					: `Copilot Sharing is already running on port ${started.usedPort}.`;
+				void vscode.window.showInformationMessage(msg);
 				break;
 			}
-			case 'stop':
+			case 'stop': {
+				const { isRunning } = isServerRunning();
 				await stopWebServer();
 				updateStatusBarItem();
-				void vscode.window.showInformationMessage('Copilot Sharing stopped.');
+				const msg = isRunning ? 'Copilot Sharing has stopped.' : 'Copilot Sharing is already stopped.';
+				void vscode.window.showInformationMessage(msg);
 				break;
+			}
 			case 'open': {
 				const latestState = getServerRuntimeState();
 				if (!latestState.localUrl) {
@@ -183,7 +199,7 @@ async function openControlMenu(context: vscode.ExtensionContext): Promise<void> 
 			case 'copyLan': {
 				const latestState = getServerRuntimeState();
 				if (latestState.networkUrls.length === 0) {
-					void vscode.window.showWarningMessage('No LAN IPv4 URL is currently available to copy.');
+					void vscode.window.showWarningMessage('No LAN IPv4 URL is available to copy.');
 					break;
 				}
 
