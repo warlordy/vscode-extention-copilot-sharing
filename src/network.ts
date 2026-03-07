@@ -6,7 +6,8 @@ import * as dgram from 'dgram';
 import { promises as fs } from 'fs';
 
 const MAX_BODY_SIZE = 1024 * 1024;
-const DEBUG_PREFIX = '[copilot-sharing]';
+const EXTENSION_ID = 'copilot-share';
+const DEBUG_PREFIX = `[${EXTENSION_ID}]`;
 
 let webServer: http.Server | undefined;
 let serverUrl: string | undefined;
@@ -367,7 +368,7 @@ function isValidIpv4(candidate: string): boolean {
 }
 
 function getConfiguredStartPort(): number {
-	const configured = vscode.workspace.getConfiguration('copilot-sharing').get<number>('port', 6800);
+	const configured = vscode.workspace.getConfiguration(`${EXTENSION_ID}`).get<number>('port', 6800);
 	if (!Number.isInteger(configured)) {
 		return 6800;
 	}

@@ -1,6 +1,6 @@
-# Copilot Sharing
+# Copilot Share
 
-Copilot Sharing is a VS Code extension that shares Copilot through a web chat app backed by an HTTP service, and provides a status bar control menu for starting or stopping sharing and opening or copying URLs.
+Copilot Share is a VS Code extension that shares Copilot through a web chat app backed by an HTTP service, and provides a status bar control menu for starting or stopping sharing and opening or copying URLs.
 
 ## What It Does
 
@@ -24,7 +24,7 @@ Copilot Sharing is a VS Code extension that shares Copilot through a web chat ap
    - open local web UI (`127.0.0.1`), or
    - copy LAN URL for other devices on the same network.
 
-You can also run command: `Open Copilot Sharing Control Menu`.
+You can also run command: `Open Copilot Share Control Menu`.
 
 ## Server Behavior
 
@@ -34,7 +34,7 @@ You can also run command: `Open Copilot Sharing Control Menu`.
 
 ## Configuration
 
-- `copilot-sharing.port`
+- `copilot-share.port`
   - Type: `number`
   - Default: `6800`
   - Range: `1` to `65535`

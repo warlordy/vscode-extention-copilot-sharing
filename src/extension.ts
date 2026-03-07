@@ -9,10 +9,11 @@ import {
 import { createStatusBarUiController } from './ui';
 
 const EXTENSION_NAME_FOR_UI = 'Copilot Share';
-const OPEN_MENU_COMMAND = 'copilot-sharing.open-control-menu';
+const EXTENSION_ID = 'copilot-share';
+const OPEN_MENU_COMMAND = `${EXTENSION_ID}.open-control-menu`;
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('Congratulations, your extension "copilot-sharing" is now active!');
+	console.log(`Congratulations, your extension "${EXTENSION_ID}" is now active!`);
 
 	const uiController = createStatusBarUiController({
 		context,

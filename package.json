@@ -1,6 +1,6 @@
 {
-  "name": "copilot-sharing",
-  "displayName": "copilot-sharing",
+  "name": "copilot-share",
+  "displayName": "copilot-share",
   "description": "This extension hosts a local http server to share copilot",
   "version": "0.0.1",
   "engines": {
@@ -16,19 +16,19 @@
   "contributes": {
     "commands": [
       {
-        "command": "copilot-sharing.open-control-menu",
-        "title": "Open Copilot Sharing Control Menu"
+        "command": "copilot-share.open-control-menu",
+        "title": "Open Copilot Share Control Menu"
       }
     ],
     "configuration": {
-      "title": "Copilot Sharing",
+      "title": "Copilot Share",
       "properties": {
-        "copilot-sharing.port": {
+        "copilot-share.port": {
           "type": "number",
           "default": 6800,
           "minimum": 1,
           "maximum": 65535,
-          "description": "Preferred starting port for the Copilot Sharing web server. If unavailable, the extension will try the next ports automatically."
+          "description": "Preferred starting port for the Copilot Share web server. If unavailable, the extension will try the next ports automatically."
         }
       }
     }
