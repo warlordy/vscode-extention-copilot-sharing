@@ -49,6 +49,13 @@ const mobileBackBtnEl = document.getElementById("mobileBackBtn");
 let currentLanServerUrl = "";
 let markdownConfigured = false;
 
+function updateCopyServerUrlButtonState() {
+	const hasLanUrl = Boolean(String(currentLanServerUrl || "").trim());
+	copyServerUrlBtnEl.disabled = !hasLanUrl;
+	copyServerUrlBtnEl.textContent = "Copy LAN URL";
+	copyServerUrlBtnEl.title = hasLanUrl ? "Copy LAN URL" : "LAN URL unavailable";
+}
+
 // ====== Utility functions ======
 function formatTime(timestamp) {
 	const date = new Date(timestamp);
@@ -350,10 +357,12 @@ async function loadServerUrlInfo() {
 		currentLanServerUrl = lanUrl;
 		serverLanUrlValueEl.textContent = lanUrl || "Not available";
 		serverLocalUrlValueEl.textContent = localUrl;
+		updateCopyServerUrlButtonState();
 	} catch {
 		currentLanServerUrl = "";
 		serverLanUrlValueEl.textContent = "Not available";
 		serverLocalUrlValueEl.textContent = `${window.location.origin}`;
+		updateCopyServerUrlButtonState();
 	}
 }
 
@@ -671,25 +680,22 @@ mobileBackBtnEl.addEventListener("click", () => {
 });
 
 copyServerUrlBtnEl.addEventListener("click", async () => {
-	let copyTarget = currentLanServerUrl;
-	if (!copyTarget) {
-		copyTarget = serverLocalUrlValueEl.textContent;
-	}
+	const copyBtnName = "Copy LAN URL";
+	const copyTarget = String(currentLanServerUrl || "").trim();
 	if (!copyTarget) {
 		return;
 	}
 
-	const text = copyServerUrlBtnEl?.textContent?.trim() || "";
 	try {
 		await navigator.clipboard.writeText(copyTarget);
 		copyServerUrlBtnEl.textContent = "Copied";
 		window.setTimeout(() => {
-			copyServerUrlBtnEl.textContent = text;
+			copyServerUrlBtnEl.textContent = copyBtnName;
 		}, 1200);
 	} catch {
 		copyServerUrlBtnEl.textContent = "Failed";
 		window.setTimeout(() => {
-			copyServerUrlBtnEl.textContent = text;
+			copyServerUrlBtnEl.textContent = copyBtnName;
 		}, 1200);
 	}
 });
@@ -711,5 +717,6 @@ loadState();
 if (!sessions.length) {
 	createSession("New Session");
 }
+updateCopyServerUrlButtonState();
 void loadServerUrlInfo();
 renderAll();
