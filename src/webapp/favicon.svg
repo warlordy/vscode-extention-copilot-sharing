@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Radio Tower">
+	<defs>
+		<linearGradient id="bg" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+			<stop offset="0" stop-color="#22c55e"/>
+			<stop offset="1" stop-color="#0f9f4f"/>
+		</linearGradient>
+	</defs>
+
+	<rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bg)"/>
+
+	<g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+		<circle cx="32" cy="21" r="3.5" stroke-width="3"/>
+		<path d="M24 50L32 25L40 50" stroke-width="4"/>
+		<path d="M26.5 40H37.5" stroke-width="3.5"/>
+		<path d="M18 18C14 22 14 28 18 32" stroke-width="3.5" opacity="0.95"/>
+		<path d="M46 18C50 22 50 28 46 32" stroke-width="3.5" opacity="0.95"/>
+		<path d="M11.5 13C5.5 19.5 5.5 30.5 11.5 37" stroke-width="3" opacity="0.85"/>
+		<path d="M52.5 13C58.5 19.5 58.5 30.5 52.5 37" stroke-width="3" opacity="0.85"/>
+	</g>
+</svg>
