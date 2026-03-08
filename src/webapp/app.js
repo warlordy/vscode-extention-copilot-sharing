@@ -26,6 +26,9 @@ let sessions = [];
 let activeSessionId = null;
 let typingSessionId = null;
 let typingTimeoutId = null;
+let promptHistorySessionId = null;
+let promptHistoryIndex = -1;
+let promptHistoryDraft = "";
 
 // ====== DOM references ======
 const appEl = document.getElementById("app");
@@ -97,6 +100,69 @@ function getActiveSession() {
 	return sessions.find((item) => item.id === activeSessionId) || null;
 }
 
+function resetPromptHistoryNavigation() {
+	promptHistorySessionId = null;
+	promptHistoryIndex = -1;
+	promptHistoryDraft = "";
+}
+
+function getUserPromptHistory(sessionId) {
+	const target = sessions.find((item) => item.id === sessionId);
+	if (!target) {
+		return [];
+	}
+
+	return target.messages
+		.filter((message) => message.role === "user" && String(message.text || "").trim())
+		.map((message) => String(message.text));
+}
+
+function navigatePromptHistoryByWheel(direction) {
+	const active = getActiveSession();
+	if (!active) {
+		return false;
+	}
+
+	const history = getUserPromptHistory(active.id);
+	if (!history.length) {
+		return false;
+	}
+
+	const newestFirst = history.slice().reverse();
+	if (promptHistorySessionId !== active.id) {
+		promptHistorySessionId = active.id;
+		promptHistoryIndex = -1;
+		promptHistoryDraft = promptInputEl.value;
+	}
+
+	if (direction < 0) {
+		if (promptHistoryIndex === -1) {
+			promptHistoryDraft = promptInputEl.value;
+			promptHistoryIndex = 0;
+		} else if (promptHistoryIndex < newestFirst.length - 1) {
+			promptHistoryIndex += 1;
+		}
+	} else if (direction > 0) {
+		if (promptHistoryIndex === -1) {
+			return true;
+		}
+
+		if (promptHistoryIndex > 0) {
+			promptHistoryIndex -= 1;
+		} else {
+			promptHistoryIndex = -1;
+			promptInputEl.value = promptHistoryDraft;
+			promptInputEl.setSelectionRange(promptInputEl.value.length, promptInputEl.value.length);
+			return true;
+		}
+	}
+
+	const nextValue = newestFirst[promptHistoryIndex] || promptHistoryDraft;
+	promptInputEl.value = nextValue;
+	promptInputEl.setSelectionRange(promptInputEl.value.length, promptInputEl.value.length);
+	return true;
+}
+
 function getPreview(session) {
 	const last = session.messages[session.messages.length - 1];
 	return last ? last.text : "No messages yet";
@@ -119,6 +185,7 @@ function createSession(name) {
 	};
 	sessions.unshift(newSession);
 	activeSessionId = newSession.id;
+	resetPromptHistoryNavigation();
 	renderAll();
 	saveState();
 }
@@ -166,6 +233,8 @@ function deleteSession(sessionId) {
 	if (activeSessionId === sessionId) {
 		activeSessionId = sessions[0].id;
 	}
+
+	resetPromptHistoryNavigation();
 
 	renderAll();
 	saveState();
@@ -321,6 +390,7 @@ function openSession(sessionId, fromListClick = false) {
 		return;
 	}
 	activeSessionId = target.id;
+	resetPromptHistoryNavigation();
 	renderAll();
 	saveState();
 
@@ -342,6 +412,7 @@ function sendUserMessage() {
 	addMessageToActiveSession("user", text);
 	showTypingIndicator(activeSessionId);
 	promptInputEl.value = "";
+	resetPromptHistoryNavigation();
 	renderAll();
 	saveState();
 	promptInputEl.focus();
@@ -409,6 +480,7 @@ async function clearActiveSessionHistory() {
 
 	active.messages = [];
 	hideTypingIndicator(active.id);
+	resetPromptHistoryNavigation();
 	renderAll();
 	saveState();
 
@@ -517,11 +589,45 @@ if (clearSessionHistoryBtnEl) {
 }
 
 promptInputEl.addEventListener("keydown", (event) => {
+	if (event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+		if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+			const direction = event.key === "ArrowUp" ? -1 : 1;
+			const handled = navigatePromptHistoryByWheel(direction);
+			if (handled) {
+				event.preventDefault();
+				return;
+			}
+		}
+	}
+
 	if (event.key === "Enter" && !event.shiftKey) {
 		event.preventDefault();
 		sendUserMessage();
 	}
 });
+
+promptInputEl.addEventListener("input", () => {
+	if (promptHistoryIndex !== -1) {
+		promptHistoryIndex = -1;
+		promptHistoryDraft = promptInputEl.value;
+	}
+});
+
+promptInputEl.addEventListener("wheel", (event) => {
+	if (document.activeElement !== promptInputEl) {
+		return;
+	}
+
+	const direction = event.deltaY < 0 ? -1 : event.deltaY > 0 ? 1 : 0;
+	if (!direction) {
+		return;
+	}
+
+	const handled = navigatePromptHistoryByWheel(direction);
+	if (handled) {
+		event.preventDefault();
+	}
+}, { passive: false });
 
 mobileBackBtnEl.addEventListener("click", () => {
 	appEl.classList.remove("show-dialog");

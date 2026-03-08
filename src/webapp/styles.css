@@ -702,7 +702,9 @@ body {
 	left: 0;
 	top: calc(100% + 6px);
 	z-index: 5;
-	min-width: 180px;
+	min-width: 260px;
+	width: max-content;
+	max-width: min(420px, calc(100vw - 40px));
 	padding: 8px 10px;
 	font-size: 12px;
 	line-height: 1.5;
@@ -710,6 +712,22 @@ body {
 	border: 1px solid var(--line);
 	border-radius: 10px;
 	box-shadow: 0 8px 20px rgba(25, 35, 55, 0.12);
+}
+
+.input-hint-list {
+	margin: 0;
+	padding-left: 18px;
+}
+
+.input-hint-list li {
+	padding: 2px 0;
+	white-space: nowrap;
+}
+
+.input-hint-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .input-hint-popover kbd {
