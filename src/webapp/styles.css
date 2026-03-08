@@ -700,7 +700,7 @@ body {
 .input-hint-popover {
 	position: absolute;
 	left: 0;
-	top: calc(100% + 6px);
+	bottom: calc(100% + 6px);
 	z-index: 5;
 	min-width: 260px;
 	width: max-content;
