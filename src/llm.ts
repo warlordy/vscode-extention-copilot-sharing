@@ -5,6 +5,10 @@ const EXTENSION_ID = 'copilot-share';
 const SYSTEM_PROMPT =
 	'You are Copilot Share, a concise and helpful assistant. Answer clearly, stay on-topic, and use the conversation history to keep context.';
 const HISTORY_TURNS_TO_KEEP = 8;
+const FILTERED_MODEL_IDS = new Set([
+	'copilot-fast', // model name: "GPT-4o mini", filted out due to small max token and invisibility from vscode copilot 
+	'gpt-4o-mini'   // model name: "GPT-4o mini", filted out due to small max token and invisibility from vscode copilot 
+]);
 
 export type ChatModelInfo = {
 	id: string;
@@ -25,7 +29,8 @@ type ConversationTurn = {
 const sessionHistory = new Map<string, ConversationTurn[]>();
 
 export async function listCopilotChatModels(): Promise<ChatModelInfo[]> {
-	const copilotModels = await vscode.lm.selectChatModels({ vendor: 'copilot' });
+	const copilotModels = (await vscode.lm.selectChatModels({ vendor: 'copilot' }))
+		.filter((model) => !FILTERED_MODEL_IDS.has(model.id));
 	const infos = copilotModels.map((model) => ({
 		id: model.id,
 		name: model.name,

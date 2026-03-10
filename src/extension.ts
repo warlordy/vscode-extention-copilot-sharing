@@ -13,7 +13,7 @@ const EXTENSION_ID = 'copilot-share';
 const OPEN_MENU_COMMAND = `${EXTENSION_ID}.open-control-menu`;
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log(`Congratulations, your extension "${EXTENSION_ID}" is now active!`);
+	console.log(`[${EXTENSION_ID}] Congratulations, your extension is now active!`);
 
 	const uiController = createStatusBarUiController({
 		context,
