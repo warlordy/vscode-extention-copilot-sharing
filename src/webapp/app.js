@@ -421,7 +421,8 @@ function sendUserMessage() {
 	if (typeof window.onUserSend === "function") {
 		window.onUserSend({
 			sessionId: activeSessionId,
-			text
+			text,
+			modelId: modelSelectEl ? String(modelSelectEl.value || "").trim() : ""
 		});
 	}
 }

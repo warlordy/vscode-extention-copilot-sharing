@@ -761,6 +761,101 @@ body {
 	max-width: 100%;
 }
 
+.model-select-native {
+	position: absolute;
+	pointer-events: none;
+	opacity: 0;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+
+.model-picker {
+	position: relative;
+	min-width: 220px;
+}
+
+.model-picker-trigger {
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	padding: 6px 10px;
+	font-size: 11px;
+	font-family: inherit;
+	background: #fff;
+	color: #334155;
+	min-width: 220px;
+	height: 32px;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	column-gap: 10px;
+	cursor: pointer;
+}
+
+.model-picker-trigger:focus {
+	outline: none;
+	border-color: #9ed7b8;
+	box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.16);
+}
+
+.model-picker-name {
+	text-align: left;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.model-picker-chevron {
+	font-size: 12px;
+	color: #6b7280;
+}
+
+.model-picker-popup {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + 6px);
+	z-index: 12;
+	min-width: 100%;
+	width: max-content;
+	max-width: min(92vw, 420px);
+	max-height: min(360px, 58vh);
+	overflow-y: auto;
+	background: #fff;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	box-shadow: 0 12px 28px rgba(25, 35, 55, 0.18);
+	padding: 6px 0;
+}
+
+.model-picker-separator {
+	height: 1px;
+	background: var(--line);
+	margin: 6px 0;
+}
+
+.model-picker-item {
+	width: 100%;
+	border: none;
+	background: transparent;
+	display: block;
+	padding: 8px 12px;
+	font-size: 13px;
+	font-family: inherit;
+	text-align: left;
+	cursor: pointer;
+	color: #374151;
+}
+
+.model-picker-item:hover {
+	background: #f3f5f9;
+}
+
+.model-picker-item.selected {
+	background: #e6f8ef;
+	color: #14532d;
+	font-weight: 600;
+}
+
 .model-select:focus {
 	outline: none;
 	border-color: #9ed7b8;
@@ -898,6 +993,18 @@ body {
 		flex: 1 1 100%;
 		width: 100%;
 		max-width: 100%;
+	}
+
+	.model-picker,
+	.model-picker-trigger {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.model-picker-popup {
+		left: 0;
+		right: auto;
+		min-width: 100%;
 	}
 
 	.clear-history-btn,

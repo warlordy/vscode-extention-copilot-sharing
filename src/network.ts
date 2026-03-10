@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as dgram from 'dgram';
 import { promises as fs } from 'fs';
-import { clearAllSessionHistory, clearSessionHistory, generateChatReply } from './llm';
+import { clearAllSessionHistory, clearSessionHistory, generateChatReply, listCopilotChatModels } from './llm';
 
 const MAX_BODY_SIZE = 1024 * 1024;
 const EXTENSION_ID = 'copilot-share';
@@ -147,6 +147,11 @@ async function handleRequest(
 			return;
 		}
 
+		if (method === 'GET' && url.pathname === '/api/models') {
+			await handleModelsRequest(response);
+			return;
+		}
+
 		if (method === 'GET' && url.pathname === '/api/server-info') {
 			handleServerInfoRequest(response);
 			return;
@@ -170,6 +175,7 @@ async function handleChatRequest(
 ): Promise<void> {
 	const body = await readJsonBody(request);
 	const sessionId = typeof body.sessionId === 'string' ? body.sessionId : 'unknown-session';
+	const modelId = typeof body.modelId === 'string' ? body.modelId : undefined;
 	const userMessage = typeof body.message === 'string' ? body.message.trim() : '';
 	if (!userMessage) {
 		sendJson(response, 400, {
@@ -179,13 +185,27 @@ async function handleChatRequest(
 		return;
 	}
 
-	const reply = await generateChatReply(sessionId, userMessage);
+	const result = await generateChatReply(sessionId, userMessage, modelId);
 
 	sendJson(response, 200, {
 		sessionId,
-		reply,
+		reply: result.reply,
+		model: result.model,
 		timestamp: Date.now()
 	});
+}
+
+async function handleModelsRequest(response: http.ServerResponse): Promise<void> {
+	try {
+		const models = await listCopilotChatModels();
+		sendJson(response, 200, {
+			vendor: 'copilot',
+			models
+		});
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		sendJson(response, 500, { error: message });
+	}
 }
 
 async function handleChatResetRequest(

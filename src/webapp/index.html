@@ -68,7 +68,7 @@
 						<summary>Input Tips</summary>
 						<div class="input-hint-popover">
 							<ol class="input-hint-list">
-								<li><div class="input-hint-item"><kbd>Enter</kbd><span>: Send message</span></div></li>
+								<li><div class="input-hint-item"><kbd>Enter</kbd><span>: Send prompts</span></div></li>
 								<li><div class="input-hint-item"><kbd>Shift</kbd><span>+</span><kbd>Enter</kbd><span>: New line</span></div></li>
 								<li><div class="input-hint-item"><kbd>Mouse Wheel</kbd><span>: Browse history prompts</span></div></li>
 								<li><div class="input-hint-item"><kbd>Alt</kbd><span>+</span><kbd>↑</kbd><span>/</span><kbd>↓</kbd><span>: Browse history prompts</span></div></li>
@@ -76,11 +76,23 @@
 						</div>
 					</details>
 					<div class="input-actions">
-						<select class="model-select" id="modelSelect" aria-label="Select Copilot model">
-							<option value="copilot-gpt-4.1" selected>Copilot GPT-4.1 (placeholder)</option>
-							<option value="copilot-gpt-4o">Copilot GPT-4o (placeholder)</option>
-							<option value="copilot-o3-mini">Copilot o3-mini (placeholder)</option>
-						</select>
+						<div class="model-picker" id="modelPicker">
+							<button
+								type="button"
+								class="model-picker-trigger"
+								id="modelPickerTrigger"
+								aria-haspopup="listbox"
+								aria-expanded="false"
+								aria-controls="modelPickerPopup"
+							>
+								<span class="model-picker-name" id="modelPickerName">Loading models...</span>
+								<span class="model-picker-chevron">▾</span>
+							</button>
+							<div class="model-picker-popup" id="modelPickerPopup" role="listbox" hidden></div>
+							<select class="model-select model-select-native" id="modelSelect" aria-label="Select Copilot model" tabindex="-1" aria-hidden="true">
+								<option value="">Loading Copilot models...</option>
+							</select>
+						</div>
 						<button class="clear-history-btn" id="clearSessionHistoryBtn" type="button">Clear Session History</button>
 						<button class="reset-btn" id="resetContextBtn" type="button">Reset Context</button>
 						<button class="send-btn" id="sendBtn" type="button">Send</button>
