@@ -39,6 +39,11 @@ You can also run command: `Open Copilot Share Control Menu`.
   - Default: `6800`
   - Range: `1` to `65535`
 
+## Limitations
+
+1. `auto` model id (display name: `Auto`) is currently not supported for direct chat calls in this extension.
+   - Reason: with the current VS Code LM API behavior, `auto` may be discoverable in model listing but not invokable as a concrete endpoint, which can cause errors like `Endpoint not found for model auto`.
+
 ## API (Current)
 
 ### `POST /api/chat`

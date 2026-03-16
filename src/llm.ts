@@ -6,8 +6,12 @@ const SYSTEM_PROMPT =
 	'You are Copilot Share, a concise and helpful assistant. Answer clearly, stay on-topic, and use the conversation history to keep context.';
 const HISTORY_TURNS_TO_KEEP = 8;
 const FILTERED_MODEL_IDS = new Set([
-	'copilot-fast', // model name: "GPT-4o mini", filted out due to small max token and invisibility from vscode copilot 
-	'gpt-4o-mini'   // model name: "GPT-4o mini", filted out due to small max token and invisibility from vscode copilot 
+	// Model: "GPT-4o mini". Filtered out due to lower token limits and inconsistent visibility in VS Code Copilot.
+	'copilot-fast', 
+	// Model: "GPT-4o mini". Filtered out due to lower token limits and inconsistent visibility in VS Code Copilot.
+	'gpt-4o-mini',   
+	// Model: "Auto". Filtered out because the VS Code LM API may expose it for discovery but not support direct invocation by id ('auto').
+	'auto' 
 ]);
 
 export type ChatModelInfo = {
