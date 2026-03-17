@@ -1,10 +1,16 @@
 import * as vscode from 'vscode';
 import {EXTENSION_ID, debugLog} from './helper';
-import { debug } from 'console';
 
 const SYSTEM_PROMPT =
 	'You are Copilot Share, a concise and helpful assistant. Answer clearly, stay on-topic, and use the conversation history to keep context.';
 const HISTORY_TURNS_TO_KEEP = 8;
+const RECENT_TURNS_TO_KEEP_AFTER_SUMMARY = 3;
+const TOKEN_ESTIMATE_CHARS_PER_TOKEN = 4;
+const MESSAGE_TOKEN_OVERHEAD = 8;
+const RESERVED_OUTPUT_TOKENS = 1024;
+const MIN_CONTEXT_TOKEN_BUDGET = 1024;
+const MAX_CONTEXT_BUDGET_RATIO = 0.75;
+const SUMMARY_TRIGGER_RATIO = 0.7;
 const FILTERED_MODEL_IDS = new Set([
 	// Model: "GPT-4o mini". Filtered out due to lower token limits and inconsistent visibility in VS Code Copilot.
 	'copilot-fast', 
@@ -31,6 +37,7 @@ type ConversationTurn = {
 };
 
 const sessionHistory = new Map<string, ConversationTurn[]>();
+const sessionSummaries = new Map<string, string>();
 
 export async function listCopilotChatModels(): Promise<ChatModelInfo[]> {
 	const copilotModels = (await vscode.lm.selectChatModels({ vendor: 'copilot' }))
@@ -62,12 +69,15 @@ export async function listCopilotChatModels(): Promise<ChatModelInfo[]> {
 }
 
 export function clearSessionHistory(sessionId: string): boolean {
-	return sessionHistory.delete(sessionId);
+	const historyDeleted = sessionHistory.delete(sessionId);
+	const summaryDeleted = sessionSummaries.delete(sessionId);
+	return historyDeleted || summaryDeleted;
 }
 
 export function clearAllSessionHistory(): number {
 	const cleared = sessionHistory.size;
 	sessionHistory.clear();
+	sessionSummaries.clear();
 	return cleared;
 }
 
@@ -78,7 +88,7 @@ export async function generateChatReply(
 ): Promise<{ reply: string; model: ChatModelInfo }> {
 	debugLog(`handle chat request, session id:${sessionId}, model id:${modelId}, user msg:${userMessage}`);
 	const model = await selectChatModel(modelId);
-	const messages = buildMessagesForSession(sessionId, userMessage);
+	const messages = buildMessagesForSession(sessionId, userMessage, model.maxInputTokens);
 	const modelResponse = await model.sendRequest(messages, {
 		justification: 'Generate a helpful reply for a user chat message in Copilot Share.'
 	});
@@ -88,6 +98,7 @@ export async function generateChatReply(
 
 	appendTurn(sessionId, 'user', userMessage);
 	appendTurn(sessionId, 'assistant', reply);
+	await compactSessionMemoryIfNeeded(sessionId, model);
 
 	return {
 		reply,
@@ -102,9 +113,16 @@ export async function generateChatReply(
 	};
 }
 
-function buildMessagesForSession(sessionId: string, userMessage: string): vscode.LanguageModelChatMessage[] {
+function buildMessagesForSession(
+	sessionId: string,
+	userMessage: string,
+	modelMaxInputTokens: number
+): vscode.LanguageModelChatMessage[] {
 	const history = sessionHistory.get(sessionId) ?? [];
-	const recentHistory = history.slice(-HISTORY_TURNS_TO_KEEP * 2);
+	const summary = sessionSummaries.get(sessionId) ?? '';
+	const budget = resolveContextTokenBudget(modelMaxInputTokens);
+	const systemPrompt = buildSystemPrompt(summary);
+	const recentHistory = selectHistoryWithinTokenBudget(history, systemPrompt, userMessage, budget);
 
 	const historyMessages = recentHistory.map((turn) =>
 		turn.role === 'user'
@@ -113,7 +131,7 @@ function buildMessagesForSession(sessionId: string, userMessage: string): vscode
 	);
 
 	return [
-		vscode.LanguageModelChatMessage.User(SYSTEM_PROMPT, 'system'),
+		vscode.LanguageModelChatMessage.User(systemPrompt, 'system'),
 		...historyMessages,
 		vscode.LanguageModelChatMessage.User(userMessage)
 	];
@@ -160,6 +178,133 @@ async function selectChatModel(requestedModelId?: string): Promise<vscode.Langua
 	throw new Error(
 		'No chat model is available. Install/sign in to GitHub Copilot Chat or another chat model provider.'
 	);
+}
+
+async function compactSessionMemoryIfNeeded(
+	sessionId: string,
+	model: vscode.LanguageModelChat
+): Promise<void> {
+	const history = sessionHistory.get(sessionId) ?? [];
+	if (history.length <= HISTORY_TURNS_TO_KEEP * 2) {
+		return;
+	}
+
+	const tokenBudget = resolveContextTokenBudget(model.maxInputTokens);
+	const historyTokens = estimateTurnsTokens(history);
+	if (historyTokens < Math.floor(tokenBudget * SUMMARY_TRIGGER_RATIO)) {
+		return;
+	}
+
+	const recentTurnsToKeep = RECENT_TURNS_TO_KEEP_AFTER_SUMMARY * 2;
+	if (history.length <= recentTurnsToKeep) {
+		return;
+	}
+
+	const olderTurns = history.slice(0, history.length - recentTurnsToKeep);
+	const recentTurns = history.slice(-recentTurnsToKeep);
+	const priorSummary = sessionSummaries.get(sessionId) ?? '';
+	const mergedSummary = await summarizeConversationHistory(model, priorSummary, olderTurns);
+	if (!mergedSummary.trim()) {
+		return;
+	}
+
+	sessionSummaries.set(sessionId, mergedSummary);
+	sessionHistory.set(sessionId, recentTurns);
+	debugLog(`session ${sessionId} history compacted: summary refreshed, kept ${recentTurns.length} recent turns`);
+}
+
+async function summarizeConversationHistory(
+	model: vscode.LanguageModelChat,
+	priorSummary: string,
+	olderTurns: ConversationTurn[]
+): Promise<string> {
+	if (olderTurns.length === 0) {
+		return priorSummary;
+	}
+
+	const transcript = olderTurns
+		.map((turn) => `${turn.role === 'user' ? 'User' : 'Assistant'}: ${turn.content}`)
+		.join('\n\n');
+	const prompt = [
+		'Summarize the conversation context for future assistant turns.',
+		'Keep only durable facts and decisions: user goals, constraints, preferences, accepted/rejected options, and unresolved tasks.',
+		'Do not include filler or conversational pleasantries.',
+		'Write concise bullet points.',
+		priorSummary ? `Existing summary:\n${priorSummary}` : 'Existing summary: (none)',
+		`New conversation segment:\n${transcript}`
+	].join('\n\n');
+
+	try {
+		const response = await model.sendRequest(
+			[
+				vscode.LanguageModelChatMessage.User(
+					'You are maintaining compact conversation memory for a chat system.',
+					'system'
+				),
+				vscode.LanguageModelChatMessage.User(prompt)
+			],
+			{ justification: 'Create compact memory of older chat history for context retention.' }
+		);
+		const summary = (await readModelTextResponse(response)).trim();
+		if (!summary) {
+			return priorSummary;
+		}
+		return summary;
+	} catch (error) {
+		debugLog(`summary generation failed: ${String(error)}`);
+		return priorSummary;
+	}
+}
+
+function buildSystemPrompt(summary: string): string {
+	if (!summary.trim()) {
+		return SYSTEM_PROMPT;
+	}
+
+	return `${SYSTEM_PROMPT}\n\nConversation memory from earlier turns:\n${summary}`;
+}
+
+function selectHistoryWithinTokenBudget(
+	history: ConversationTurn[],
+	systemPrompt: string,
+	userMessage: string,
+	maxContextTokens: number
+): ConversationTurn[] {
+	const selected: ConversationTurn[] = [];
+	let usedTokens = estimateTextTokens(systemPrompt) + estimateTextTokens(userMessage) + MESSAGE_TOKEN_OVERHEAD * 2;
+
+	for (let i = history.length - 1; i >= 0; i--) {
+		const turn = history[i];
+		const turnTokens = estimateTextTokens(turn.content) + MESSAGE_TOKEN_OVERHEAD;
+		if (usedTokens + turnTokens > maxContextTokens) {
+			break;
+		}
+		selected.unshift(turn);
+		usedTokens += turnTokens;
+	}
+
+	return selected;
+}
+
+function resolveContextTokenBudget(modelMaxInputTokens: number): number {
+	if (!Number.isFinite(modelMaxInputTokens) || modelMaxInputTokens <= 0) {
+		return 4096;
+	}
+
+	const ratioBudget = Math.floor(modelMaxInputTokens * MAX_CONTEXT_BUDGET_RATIO);
+	const reservedBudget = modelMaxInputTokens - RESERVED_OUTPUT_TOKENS;
+	return Math.max(MIN_CONTEXT_TOKEN_BUDGET, Math.min(ratioBudget, reservedBudget));
+}
+
+function estimateTurnsTokens(turns: ConversationTurn[]): number {
+	return turns.reduce((total, turn) => total + estimateTextTokens(turn.content) + MESSAGE_TOKEN_OVERHEAD, 0);
+}
+
+function estimateTextTokens(text: string): number {
+	if (!text) {
+		return 0;
+	}
+	return Math.ceil(text.length / TOKEN_ESTIMATE_CHARS_PER_TOKEN);
 }
 
 async function readModelTextResponse(modelResponse: vscode.LanguageModelChatResponse): Promise<string> {
