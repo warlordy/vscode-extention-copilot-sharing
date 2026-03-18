@@ -783,8 +783,8 @@ loadState();
 if (!sessions.length) {
 	createSession("New Session");
 }
-if (typeof window.initServerUrlPanel === "function") {
-	void window.initServerUrlPanel();
+if (typeof window.initCopilotSharePanel === "function") {
+	void window.initCopilotSharePanel();
 }
 applySidebarState();
 renderAll();
