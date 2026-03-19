@@ -352,12 +352,19 @@ body {
 
 .copilot-share-menu-item-icon {
 	width: 16px;
+	height: 16px;
 	flex: 0 0 16px;
-	color: #64748b;
-	font-size: 11px;
-	line-height: 1;
-	font-weight: 700;
-	text-align: center;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 16px 16px;
+}
+
+.copilot-share-menu-item-icon.icon-copy {
+	background-image: url("./icons/copy.svg");
+}
+
+.copilot-share-menu-item-icon.icon-globe {
+	background-image: url("./icons/globe.svg");
 }
 
 .copilot-share-menu-item-text {
