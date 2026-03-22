@@ -225,7 +225,7 @@ body {
 }
 
 .app.sidebar-collapsed {
-	grid-template-columns: 74px 1fr;
+	grid-template-columns: 60px 1fr;
 }
 
 .app.sidebar-collapsed .sidebar {
