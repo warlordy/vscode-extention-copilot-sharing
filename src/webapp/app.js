@@ -43,6 +43,8 @@ const promptInputEl = document.getElementById("promptInput");
 const modelSelectEl = document.getElementById("modelSelect");
 const clearSessionHistoryBtnEl = document.getElementById("clearSessionHistoryBtn");
 const resetContextBtnEl = document.getElementById("resetContextBtn");
+const dialogHeaderMenuBtnEl = document.getElementById("dialogHeaderMenuBtn");
+const dialogHeaderMenuEl = document.getElementById("dialogHeaderMenu");
 const cancelStreamBtnEl = document.getElementById("cancelStreamBtn");
 const sendBtnEl = document.getElementById("sendBtn");
 const mobileBackBtnEl = document.getElementById("mobileBackBtn");
@@ -549,30 +551,27 @@ async function resetActiveSessionContext() {
 		return;
 	}
 
-	const ok = window.confirm(`Reset AI context for "${active.name}"? This keeps messages in this session.`);
-	if (!ok) {
-		return;
-	}
+	       // Confirmation is now handled in the event handler, not here.
 
-	const originalLabel = resetContextBtnEl.textContent || "Reset Context";
+	const originalHTML = resetContextBtnEl.innerHTML;
 	resetContextBtnEl.disabled = true;
-	resetContextBtnEl.textContent = "Resetting...";
+	resetContextBtnEl.innerHTML = '<span class="copilot-share-menu-item-icon icon-reset" aria-hidden="true"></span><span class="copilot-share-menu-item-text">Resetting...</span>';
 
-	try {
-		await window.resetChatContext({ sessionId: active.id });
-		resetContextBtnEl.textContent = "Reset Done";
-		window.setTimeout(() => {
-			if (resetContextBtnEl) {
-				resetContextBtnEl.textContent = originalLabel;
-				resetContextBtnEl.disabled = !getActiveSession();
-			}
-		}, 1200);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		console.error(`Reset failed: ${message}`);
-		resetContextBtnEl.textContent = originalLabel;
-		resetContextBtnEl.disabled = !getActiveSession();
-	}
+	       try {
+		       await window.resetChatContext({ sessionId: active.id });
+		       resetContextBtnEl.innerHTML = '<span class="copilot-share-menu-item-icon icon-reset" aria-hidden="true"></span><span class="copilot-share-menu-item-text">Reset Done</span>';
+		       window.setTimeout(() => {
+			       if (resetContextBtnEl) {
+				       resetContextBtnEl.innerHTML = originalHTML;
+				       resetContextBtnEl.disabled = !getActiveSession();
+			       }
+		       }, 1200);
+	       } catch (error) {
+		       const message = error instanceof Error ? error.message : String(error);
+		       console.error(`Reset failed: ${message}`);
+		       resetContextBtnEl.innerHTML = originalHTML;
+		       resetContextBtnEl.disabled = !getActiveSession();
+	       }
 }
 
 async function clearActiveSessionHistory() {
@@ -581,14 +580,11 @@ async function clearActiveSessionHistory() {
 		return;
 	}
 
-	const ok = window.confirm(`Clear all messages in "${active.name}"?`);
-	if (!ok) {
-		return;
-	}
+	       // Confirmation is now handled in the event handler, not here.
 
-	const originalLabel = clearSessionHistoryBtnEl.textContent || "Clear Session History";
+	const originalHTML = clearSessionHistoryBtnEl.innerHTML;
 	clearSessionHistoryBtnEl.disabled = true;
-	clearSessionHistoryBtnEl.textContent = "Clearing...";
+	clearSessionHistoryBtnEl.innerHTML = '<span class="copilot-share-menu-item-icon icon-clear-all" aria-hidden="true"></span><span class="copilot-share-menu-item-text">Clearing...</span>';
 
 	active.messages = [];
 	hideTypingIndicator(active.id);
@@ -604,13 +600,13 @@ async function clearActiveSessionHistory() {
 		}
 	}
 
-	clearSessionHistoryBtnEl.textContent = "Cleared";
-	window.setTimeout(() => {
-		if (clearSessionHistoryBtnEl) {
-			clearSessionHistoryBtnEl.textContent = originalLabel;
-			clearSessionHistoryBtnEl.disabled = !getActiveSession();
-		}
-	}, 1000);
+	       clearSessionHistoryBtnEl.innerHTML = '<span class="copilot-share-menu-item-icon icon-clear-all" aria-hidden="true"></span><span class="copilot-share-menu-item-text">Cleared</span>';
+	       window.setTimeout(() => {
+		       if (clearSessionHistoryBtnEl) {
+			       clearSessionHistoryBtnEl.innerHTML = originalHTML;
+			       clearSessionHistoryBtnEl.disabled = !getActiveSession();
+		       }
+	       }, 1000);
 }
 
 window.startAgentMessageStream = function startAgentMessageStream(sessionId) {
@@ -815,15 +811,60 @@ sessionListEl.addEventListener("focusout", (event) => {
 
 sendBtnEl.addEventListener("click", sendUserMessage);
 
-if (resetContextBtnEl) {
-	resetContextBtnEl.addEventListener("click", () => {
-		void resetActiveSessionContext();
+
+// Dialog header menu logic
+if (dialogHeaderMenuBtnEl && dialogHeaderMenuEl) {
+	dialogHeaderMenuBtnEl.addEventListener("click", (e) => {
+		e.stopPropagation();
+		const expanded = dialogHeaderMenuBtnEl.getAttribute("aria-expanded") === "true";
+		if (expanded) {
+			dialogHeaderMenuEl.hidden = true;
+			dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
+		} else {
+			dialogHeaderMenuEl.hidden = false;
+			dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "true");
+		}
 	});
+	// Hide menu on outside click
+	document.addEventListener("click", (e) => {
+		if (!dialogHeaderMenuEl.contains(e.target) && e.target !== dialogHeaderMenuBtnEl) {
+			dialogHeaderMenuEl.hidden = true;
+			if (dialogHeaderMenuBtnEl) dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
+		}
+	});
+
+	// Reset Context button event (now in dialog-header menu) with confirmation
+	if (resetContextBtnEl) {
+		resetContextBtnEl.addEventListener("click", () => {
+			const ok = window.confirm("Are you sure you want to clear the context for this session?");
+			if (!ok) {
+				// Always close the menu if user cancels, to prevent repeated popups
+				if (dialogHeaderMenuEl) {
+					dialogHeaderMenuEl.hidden = true;
+					if (dialogHeaderMenuBtnEl) dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
+				}
+				return;
+			}
+			void resetActiveSessionContext();
+			if (dialogHeaderMenuEl) {
+				dialogHeaderMenuEl.hidden = true;
+				if (dialogHeaderMenuBtnEl) dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
+			}
+		});
+	}
 }
 
+
+// Clear Session button event (now in dialog-header menu)
 if (clearSessionHistoryBtnEl) {
 	clearSessionHistoryBtnEl.addEventListener("click", () => {
+		const ok = window.confirm("Are you sure you want to clear all messages in this session?");
+		if (!ok) return;
 		void clearActiveSessionHistory();
+		if (dialogHeaderMenuEl) {
+			dialogHeaderMenuEl.hidden = true;
+			if (dialogHeaderMenuBtnEl) dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
+		}
 	});
 }
 

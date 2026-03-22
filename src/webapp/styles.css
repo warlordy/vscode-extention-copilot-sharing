@@ -1,3 +1,13 @@
+.copilot-share-menu-item-icon.icon-clear-all {
+	background-image: url("./icons/clear-all.svg");
+}
+
+.copilot-share-menu-separator {
+	height: 1px;
+	background: #e2e8f0;
+	margin: 6px 0;
+	border-radius: 1px;
+}
 
 .copilot-share-favicon {
 	display: none;
@@ -493,12 +503,17 @@ body {
 }
 
 .copilot-share-menu-dots {
-	width: 4px;
-	height: 4px;
-	border-radius: 50%;
-	background: #64748b;
-	box-shadow: -6px 0 0 #64748b, 6px 0 0 #64748b;
+	width: 16px;
+	height: 16px;
 	display: inline-block;
+	background-image: url("./icons/settings.svg");
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 16px 16px;
+}
+
+.dialog-header-actions .copilot-share-menu-dots {
+	background-image: url("./icons/tools.svg");
 }
 
 .copilot-share-menu-popup {
@@ -546,6 +561,10 @@ body {
 
 .copilot-share-menu-item-icon.icon-globe {
 	background-image: url("./icons/globe.svg");
+}
+
+.copilot-share-menu-item-icon.icon-reset {
+	background-image: url("./icons/eraser.svg");
 }
 
 .copilot-share-menu-item-text {

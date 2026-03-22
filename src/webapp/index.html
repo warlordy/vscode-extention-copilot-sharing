@@ -65,11 +65,39 @@
 		</aside>
 
 		<main class="dialog">
+
 			<header class="dialog-header">
 				<div class="dialog-title">
 					<button class="mobile-back" id="mobileBackBtn" aria-label="Back to sessions">← Back</button>
 					<div>
 						<div class="dialog-title-text" id="dialogTitle">Select a session</div>
+					</div>
+				</div>
+				<div class="dialog-header-actions">
+					<div class="copilot-share-menu">
+						<button
+							class="copilot-share-menu-trigger"
+							id="dialogHeaderMenuBtn"
+							type="button"
+							aria-haspopup="menu"
+							aria-expanded="false"
+							aria-controls="dialogHeaderMenu"
+							aria-label="More actions"
+							title="More actions"
+						>
+							<span class="copilot-share-menu-dots" aria-hidden="true"></span>
+						</button>
+						<div class="copilot-share-menu-popup" id="dialogHeaderMenu" role="menu" hidden>
+							<button class="copilot-share-menu-item" id="clearSessionHistoryBtn" type="button" role="menuitem">
+								<span class="copilot-share-menu-item-icon icon-clear-all" aria-hidden="true"></span>
+								<span class="copilot-share-menu-item-text">Clear Session</span>
+							</button>
+							<div class="copilot-share-menu-separator"></div>
+							<button class="copilot-share-menu-item" id="resetContextBtn" type="button" role="menuitem">
+								<span class="copilot-share-menu-item-icon icon-reset" aria-hidden="true"></span>
+								<span class="copilot-share-menu-item-text">Clear Context</span>
+							</button>
+						</div>
 					</div>
 				</div>
 			</header>
@@ -109,8 +137,6 @@
 								<option value="">Loading Copilot models...</option>
 							</select>
 						</div>
-						<button class="clear-history-btn" id="clearSessionHistoryBtn" type="button">Clear Session History</button>
-						<button class="reset-btn" id="resetContextBtn" type="button">Reset Context</button>
 						<button class="cancel-btn" id="cancelStreamBtn" type="button" disabled>Cancel</button>
 						<button class="send-btn" id="sendBtn" type="button">Send</button>
 					</div>
