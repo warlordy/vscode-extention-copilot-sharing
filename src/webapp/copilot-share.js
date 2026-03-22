@@ -77,6 +77,9 @@ function initCopilotSharePanel() {
 		const shouldOpen = copilotShareMenuEl.hidden;
 		copilotShareMenuEl.hidden = !shouldOpen;
 		copilotShareMenuBtnEl.setAttribute("aria-expanded", String(shouldOpen));
+		if (shouldOpen && typeof window.requestMenuPopupClamp === "function") {
+			window.requestMenuPopupClamp();
+		}
 	}
 
 	async function loadCopilotShareInfo() {

@@ -356,6 +356,80 @@ function hideSessionHoverPopup() {
 	sessionHoverPopupEl.hidden = true;
 }
 
+function getMenuPopupBoundaryRect() {
+	if (appEl && typeof appEl.getBoundingClientRect === "function") {
+		const rect = appEl.getBoundingClientRect();
+		return {
+			left: rect.left + 6,
+			right: rect.right - 6,
+			top: rect.top + 6,
+			bottom: rect.bottom - 6
+		};
+	}
+
+	return {
+		left: 6,
+		right: window.innerWidth - 6,
+		top: 6,
+		bottom: window.innerHeight - 6
+	};
+}
+
+function clampMenuPopupToBoundary(popupEl) {
+	if (!(popupEl instanceof HTMLElement) || popupEl.hidden) {
+		return;
+	}
+
+	popupEl.style.transform = "";
+	popupEl.style.maxHeight = "";
+	popupEl.style.overflowY = "";
+	const boundary = getMenuPopupBoundaryRect();
+	const availableHeight = Math.max(80, Math.floor(boundary.bottom - boundary.top));
+	let rect = popupEl.getBoundingClientRect();
+
+	if (rect.height > availableHeight + 0.5) {
+		popupEl.style.maxHeight = `${availableHeight}px`;
+		popupEl.style.overflowY = "auto";
+		rect = popupEl.getBoundingClientRect();
+	}
+
+	let deltaX = 0;
+	let deltaY = 0;
+
+	if (rect.right > boundary.right) {
+		deltaX -= rect.right - boundary.right;
+	}
+	if (rect.left + deltaX < boundary.left) {
+		deltaX += boundary.left - (rect.left + deltaX);
+	}
+
+	if (rect.bottom > boundary.bottom) {
+		deltaY -= rect.bottom - boundary.bottom;
+	}
+	if (rect.top + deltaY < boundary.top) {
+		deltaY += boundary.top - (rect.top + deltaY);
+	}
+
+	if (Math.abs(deltaX) > 0.5 || Math.abs(deltaY) > 0.5) {
+		popupEl.style.transform = `translate(${Math.round(deltaX)}px, ${Math.round(deltaY)}px)`;
+	}
+}
+
+function clampVisibleMenuPopups() {
+	const popups = document.querySelectorAll(".copilot-share-menu-popup");
+	popups.forEach((popupEl) => {
+		clampMenuPopupToBoundary(popupEl);
+	});
+}
+
+function requestMenuPopupClamp() {
+	window.requestAnimationFrame(() => {
+		clampVisibleMenuPopups();
+	});
+}
+
+window.requestMenuPopupClamp = requestMenuPopupClamp;
+
 function showSessionHoverPopup(item) {
 	if (!appEl.classList.contains("sidebar-collapsed") || !sidebarEl) {
 		hideSessionHoverPopup();
@@ -462,6 +536,8 @@ function applySidebarState() {
 		sidebarToggleBtnEl.setAttribute("aria-label", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
 		sidebarToggleBtnEl.setAttribute("title", shouldCollapse ? "Expand sidebar" : "Collapse sidebar");
 	}
+
+	requestMenuPopupClamp();
 }
 
 function toggleSidebarCollapse() {
@@ -1139,6 +1215,7 @@ if (dialogHeaderMenuBtnEl && dialogHeaderMenuEl) {
 		} else {
 			dialogHeaderMenuEl.hidden = false;
 			dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "true");
+			requestMenuPopupClamp();
 		}
 	});
 	// Hide menu on outside click
@@ -1249,6 +1326,7 @@ window.addEventListener("resize", () => {
 	}
 	applySidebarState();
 	hideSessionHoverPopup();
+	requestMenuPopupClamp();
 });
 
 window.addEventListener("scroll", hideSessionHoverPopup, { passive: true });
