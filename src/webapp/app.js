@@ -323,8 +323,10 @@ const dialogSubtitleEl = document.getElementById("dialogSubtitle");
 const messagesEl = document.getElementById("messages");
 const promptInputEl = document.getElementById("promptInput");
 const modelSelectEl = document.getElementById("modelSelect");
+const importSessionBtnEl = document.getElementById("importSessionBtn");
 const clearSessionHistoryBtnEl = document.getElementById("clearSessionHistoryBtn");
 const resetContextBtnEl = document.getElementById("resetContextBtn");
+const dialogHeaderExportBtnEl = document.getElementById("dialogHeaderExportBtn");
 const dialogHeaderMenuBtnEl = document.getElementById("dialogHeaderMenuBtn");
 const dialogHeaderMenuEl = document.getElementById("dialogHeaderMenu");
 const sendBtnEl = document.getElementById("sendBtn");
@@ -480,6 +482,333 @@ function formatDateTime(timestamp) {
 	const m = String(date.getMonth() + 1).padStart(2, "0");
 	const d = String(date.getDate()).padStart(2, "0");
 	return `${y}-${m}-${d} ${formatTime(timestamp)}`;
+}
+
+function formatDateTimeForFileName(timestamp) {
+	const date = new Date(timestamp);
+	const y = date.getFullYear();
+	const m = String(date.getMonth() + 1).padStart(2, "0");
+	const d = String(date.getDate()).padStart(2, "0");
+	const hh = String(date.getHours()).padStart(2, "0");
+	const mm = String(date.getMinutes()).padStart(2, "0");
+	const ss = String(date.getSeconds()).padStart(2, "0");
+	return `${y}${m}${d}-${hh}${mm}${ss}`;
+}
+
+function sanitizeFileName(value) {
+	return String(value || "session")
+		.replace(/[\\/:*?"<>|]+/g, "-")
+		.replace(/\s+/g, " ")
+		.trim()
+		.slice(0, 80) || "session";
+}
+
+function getMarkdownFence(content) {
+	const matches = String(content || "").match(/`+/g);
+	let maxTicks = 2;
+	if (matches) {
+		for (const token of matches) {
+			if (token.length > maxTicks) {
+				maxTicks = token.length;
+			}
+		}
+	}
+	return "`".repeat(Math.max(3, maxTicks + 1));
+}
+
+function asFencedMarkdownBlock(content) {
+	const body = String(content || "").replace(/\r\n/g, "\n");
+	const fence = getMarkdownFence(body);
+	return `${fence}\n${body}\n${fence}`;
+}
+
+function resolveModelMetadata(session) {
+	const modelId = String(session?.modelId || "").trim() || (modelSelectEl ? String(modelSelectEl.value || "").trim() : "");
+	if (!modelId || !(modelSelectEl instanceof HTMLSelectElement)) {
+		return {
+			id: modelId,
+			name: "Unknown"
+		};
+	}
+
+	const option = Array.from(modelSelectEl.options).find((item) => item.value === modelId);
+	return {
+		id: modelId,
+		name: option ? String(option.textContent || modelId).trim() : modelId
+	};
+}
+
+function buildSessionMarkdown(session) {
+	const model = resolveModelMetadata(session);
+	const lines = [];
+	lines.push(`# ${String(session.name || "Session")}`);
+	lines.push("");
+	lines.push("## Session Metadata");
+	lines.push("");
+	lines.push(`- Session Name: ${String(session.name || "")}`);
+	lines.push(`- Session ID: ${String(session.id || "")}`);
+	lines.push(`- Current Model: ${model.name}`);
+	lines.push(`- Current Model ID: ${model.id || "Unknown"}`);
+	lines.push(`- Exported At: ${formatDateTime(Date.now())}`);
+	lines.push("");
+	lines.push("## Conversation");
+
+	if (!Array.isArray(session.messages) || !session.messages.length) {
+		lines.push("");
+		lines.push("_No messages in this session._");
+		return lines.join("\n");
+	}
+
+	for (const message of session.messages) {
+		const roleLabel = message.role === "agent" ? "Copilot" : "User";
+		const timestamp = Number.isFinite(message.timestamp) ? formatDateTime(message.timestamp) : "Unknown time";
+		lines.push("");
+		lines.push(`### ${roleLabel} (${timestamp})`);
+		lines.push("");
+		lines.push(asFencedMarkdownBlock(String(message.text || "")));
+	}
+
+	return lines.join("\n");
+}
+
+function downloadSessionAsMarkdown() {
+	const active = getActiveSession();
+	if (!active) {
+		return;
+	}
+
+	const markdown = buildSessionMarkdown(active);
+	const safeName = sanitizeFileName(active.name);
+	const stamp = formatDateTimeForFileName(Date.now());
+	const fileName = `${safeName}-${active.id}-${stamp}.md`;
+	const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+	const blobUrl = URL.createObjectURL(blob);
+
+	const anchor = document.createElement("a");
+	anchor.href = blobUrl;
+	anchor.download = fileName;
+	anchor.rel = "noopener";
+	document.body.append(anchor);
+	anchor.click();
+	anchor.remove();
+
+	window.setTimeout(() => {
+		URL.revokeObjectURL(blobUrl);
+	}, 0);
+}
+
+function parseSessionTimestamp(value) {
+	const text = String(value || "").trim();
+	const match = text.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
+	if (!match) {
+		return Date.now();
+	}
+
+	const year = Number(match[1]);
+	const month = Number(match[2]) - 1;
+	const day = Number(match[3]);
+	const hour = Number(match[4]);
+	const minute = Number(match[5]);
+	const date = new Date(year, month, day, hour, minute, 0, 0);
+	const timestamp = date.getTime();
+	return Number.isFinite(timestamp) ? timestamp : Date.now();
+}
+
+function parseSessionMetadataFromMarkdown(markdown) {
+	const lines = String(markdown || "").replace(/\r\n/g, "\n").split("\n");
+	const metadata = {
+		sessionName: "",
+		sessionId: "",
+		currentModel: "",
+		currentModelId: ""
+	};
+
+	for (const rawLine of lines) {
+		const line = rawLine.trim();
+		if (!line.startsWith("-")) {
+			continue;
+		}
+
+		const pairMatch = line.match(/^-\s*([^:]+):\s*(.*)$/);
+		if (!pairMatch) {
+			continue;
+		}
+
+		const key = String(pairMatch[1] || "").trim().toLowerCase();
+		const value = String(pairMatch[2] || "").trim();
+		if (key === "session name") {
+			metadata.sessionName = value;
+		}
+		if (key === "session id") {
+			metadata.sessionId = value;
+		}
+		if (key === "current model") {
+			metadata.currentModel = value;
+		}
+		if (key === "current model id") {
+			metadata.currentModelId = value;
+		}
+	}
+
+	return metadata;
+}
+
+function parseSessionMessagesFromMarkdown(markdown) {
+	const normalized = String(markdown || "").replace(/\r\n/g, "\n");
+	const lines = normalized.split("\n");
+	const messages = [];
+
+	let index = 0;
+	while (index < lines.length) {
+		const headingMatch = lines[index].match(/^###\s+(User|Copilot)\s*\(([^)]*)\)\s*$/);
+		if (!headingMatch) {
+			index += 1;
+			continue;
+		}
+
+		const role = headingMatch[1] === "Copilot" ? "agent" : "user";
+		const timestamp = parseSessionTimestamp(headingMatch[2]);
+		index += 1;
+
+		while (index < lines.length && !String(lines[index]).trim()) {
+			index += 1;
+		}
+
+		if (index >= lines.length) {
+			messages.push({
+				id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
+				role,
+				text: "",
+				timestamp
+			});
+			break;
+		}
+
+		const fenceStartMatch = lines[index].match(/^(`{3,})\s*$/);
+		if (!fenceStartMatch) {
+			index += 1;
+			continue;
+		}
+
+		const fence = fenceStartMatch[1];
+		index += 1;
+		const contentLines = [];
+
+		while (index < lines.length && lines[index] !== fence) {
+			contentLines.push(lines[index]);
+			index += 1;
+		}
+
+		if (index < lines.length && lines[index] === fence) {
+			index += 1;
+		}
+
+		messages.push({
+			id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
+			role,
+			text: contentLines.join("\n"),
+			timestamp
+		});
+	}
+
+	return messages;
+}
+
+function parseSessionFromMarkdown(markdown) {
+	const metadata = parseSessionMetadataFromMarkdown(markdown);
+	const missingFields = [];
+	if (!metadata.sessionName) {
+		missingFields.push("Session Name");
+	}
+	if (!metadata.sessionId) {
+		missingFields.push("Session ID");
+	}
+	if (!metadata.currentModel) {
+		missingFields.push("Current Model");
+	}
+	if (!metadata.currentModelId) {
+		missingFields.push("Current Model ID");
+	}
+
+	if (missingFields.length) {
+		throw new Error(`Missing metadata fields: ${missingFields.join(", ")}`);
+	}
+
+	const parsedMessages = parseSessionMessagesFromMarkdown(markdown);
+	return {
+		id: metadata.sessionId,
+		name: metadata.sessionName,
+		modelId: metadata.currentModelId,
+		messages: parsedMessages
+	};
+}
+
+function pickImportMarkdownFile() {
+	return new Promise((resolve) => {
+		const input = document.createElement("input");
+		input.type = "file";
+		input.accept = ".md,text/markdown,text/plain";
+		input.style.display = "none";
+
+		const cleanup = () => {
+			input.remove();
+		};
+
+		input.addEventListener("change", () => {
+			const file = input.files && input.files[0] ? input.files[0] : null;
+			cleanup();
+			resolve(file);
+		}, { once: true });
+
+		document.body.append(input);
+		input.click();
+	});
+}
+
+async function importSessionFromMarkdown() {
+	const selectedFile = await pickImportMarkdownFile();
+	if (!selectedFile) {
+		return;
+	}
+
+	const markdown = await selectedFile.text();
+	let importedSession;
+	try {
+		importedSession = parseSessionFromMarkdown(markdown);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		window.alert(`Import failed: ${message}`);
+		return;
+	}
+
+	const duplicated = sessions.find((item) => item.id === importedSession.id);
+	if (duplicated) {
+		window.alert(`Import Warning: A session with ID "${importedSession.id}" already exists. Import cancelled.`);
+		return;
+	}
+
+	sessions.unshift(importedSession);
+	activeSessionId = importedSession.id;
+	resetPromptHistoryNavigation();
+	renderAll();
+	saveState();
+
+	try {
+		await loadCopilotModels();
+	} catch {
+		// Keep imported model ID even if model list refresh fails.
+	}
+
+	if (typeof window.setActiveSessionModelId === "function") {
+		window.setActiveSessionModelId(importedSession.modelId);
+	}
+	if (typeof window.syncModelPickerForActiveSession === "function") {
+		window.syncModelPickerForActiveSession();
+	}
+
+	if (window.matchMedia("(max-width: 760px)").matches) {
+		appEl.classList.add("show-dialog");
+	}
 }
 
 function escapeHtml(value) {
@@ -842,6 +1171,9 @@ function updateInputActionStates() {
 	const hasInFlightStream = hasActiveSession
 		&& typeof window.isSessionStreamInFlight === "function"
 		&& window.isSessionStreamInFlight(activeSessionId);
+	if (dialogHeaderExportBtnEl) {
+		dialogHeaderExportBtnEl.disabled = !hasActiveSession;
+	}
 	if (resetContextBtnEl) {
 		resetContextBtnEl.disabled = !hasActiveSession;
 	}
@@ -1103,6 +1435,12 @@ newSessionBtnEl.addEventListener("click", () => {
 	}
 });
 
+if (importSessionBtnEl) {
+	importSessionBtnEl.addEventListener("click", () => {
+		void importSessionFromMarkdown();
+	});
+}
+
 sessionListEl.addEventListener("click", (event) => {
 	const target = event.target;
 	if (!(target instanceof HTMLElement)) {
@@ -1202,6 +1540,10 @@ sessionListEl.addEventListener("focusout", (event) => {
 });
 
 sendBtnEl.addEventListener("click", handlePrimaryActionClick);
+
+if (dialogHeaderExportBtnEl) {
+	dialogHeaderExportBtnEl.addEventListener("click", downloadSessionAsMarkdown);
+}
 
 
 // Dialog header menu logic
