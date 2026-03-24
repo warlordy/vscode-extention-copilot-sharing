@@ -252,6 +252,36 @@ function gotoNextMatch() {
 	setCurrentSearchMatch(currentMatchIdx + 1);
 }
 
+function navigateSearchMatchesByWheel(direction) {
+	if (!messageSearchBarEl || messageSearchBarEl.hidden || !searchMatches.length) {
+		return false;
+	}
+
+	if (direction < 0) {
+		gotoPrevMatch();
+		return true;
+	}
+
+	if (direction > 0) {
+		gotoNextMatch();
+		return true;
+	}
+
+	return false;
+}
+
+function handleMessageSearchWheel(event) {
+	const direction = event.deltaY < 0 ? -1 : event.deltaY > 0 ? 1 : 0;
+	if (!direction) {
+		return;
+	}
+
+	const handled = navigateSearchMatchesByWheel(direction);
+	if (handled) {
+		event.preventDefault();
+	}
+}
+
 if (dialogHeaderSearchBtnEl) {
 	dialogHeaderSearchBtnEl.addEventListener("click", openMessageSearchBar);
 }
@@ -276,6 +306,9 @@ if (messageSearchPrevBtnEl) {
 }
 if (messageSearchNextBtnEl) {
 	messageSearchNextBtnEl.addEventListener("click", gotoNextMatch);
+}
+if (messageSearchBarEl) {
+	messageSearchBarEl.addEventListener("wheel", handleMessageSearchWheel, { passive: false });
 }
 
 updateSearchMatchInfo();
