@@ -1193,7 +1193,7 @@ function renderSessionList() {
 			const isOpen = session.isOpen !== false;
 			const isLocked = !isOpen;
 			const lockTitle = isOpen ? "Lock session" : "Unlock session";
-			const lockIconClass = isOpen ? "session-lock-icon is-open" : "session-lock-icon is-closed";
+			const lockGlyph = isOpen ? "🔓︎": "🔐︎";
 			const moreTitle = isLocked ? "Session is locked" : "More Actions";
 			const safeName = escapeHtml(session.name);
 			const iconText = escapeHtml(session.name.slice(0, 1).toUpperCase() || "S");
@@ -1214,10 +1214,10 @@ function renderSessionList() {
 					<div class="session-actions">
 						<div class="copilot-share-menu session-item-menu">
 							<button class="action-btn lock" type="button" data-action="toggle-lock" data-id="${session.id}" aria-label="${lockTitle}" title="${lockTitle}">
-								<span class="${lockIconClass}" aria-hidden="true"></span>
+								<span class="session-menu-glyph" aria-hidden="true">${lockGlyph}</span>
 							</button>
 							<button class="action-btn more copilot-share-menu-trigger" type="button" data-action="more" data-id="${session.id}" aria-haspopup="menu" aria-expanded="false" aria-controls="${sessionMenuId}" aria-label="${moreTitle}" title="${moreTitle}" ${isLocked ? "disabled" : ""}>
-								<span class="session-more-icon" aria-hidden="true"></span>
+								<span class="session-menu-glyph session-more-glyph" aria-hidden="true">•••</span>
 							</button>
 							<div class="copilot-share-menu-popup session-more-menu-popup" id="${sessionMenuId}" role="menu" hidden>
 								<button class="copilot-share-menu-item action-btn rename" type="button" data-action="rename" data-id="${session.id}" role="menuitem" aria-label="Rename Session" ${isLocked ? "disabled" : ""}>

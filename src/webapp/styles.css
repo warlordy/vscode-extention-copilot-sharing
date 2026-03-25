@@ -967,7 +967,15 @@ body {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "Noto Sans Symbols", sans-serif;
 	background-image: none !important;
+}
+
+.session-more-glyph {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: -1px;
+	transform: translateY(-0.5px);
 }
 
 .action-btn.more {
@@ -977,6 +985,11 @@ body {
 	justify-content: center;
 	background: #eef4f8;
 	color: #4f6275;
+}
+
+.session-actions .action-btn.more.copilot-share-menu-trigger {
+	width: auto;
+	height: auto;
 }
 
 .action-btn.more:hover {
@@ -1002,33 +1015,6 @@ body {
 
 .action-btn.lock:hover {
 	background: #e4edf4;
-}
-
-.session-more-icon {
-	width: 12px;
-	height: 12px;
-	display: inline-block;
-	background-image: url("./icons/menu.svg");
-	background-repeat: no-repeat;
-	background-position: center;
-	background-size: 12px 12px;
-}
-
-.session-lock-icon {
-	width: 12px;
-	height: 12px;
-	display: inline-block;
-	background-repeat: no-repeat;
-	background-position: center;
-	background-size: 12px 12px;
-}
-
-.session-lock-icon.is-open {
-	background-image: url("./icons/lock-off.svg");
-}
-
-.session-lock-icon.is-closed {
-	background-image: url("./icons/lock-on.svg");
 }
 
 .action-btn {
