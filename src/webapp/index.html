@@ -34,9 +34,6 @@
 						<button class="primary-btn" id="newSessionBtn" type="button" aria-label="New Session" title="New Session">
 							<span class="new-session-icon" aria-hidden="true"></span>
 						</button>
-						<button class="primary-btn" id="importSessionBtn" type="button" aria-label="Import Session" title="Import Session">
-							<span class="import-session-icon" aria-hidden="true"></span>
-						</button>
 						<div class="copilot-share-menu">
 							<button
 								class="copilot-share-menu-trigger"
@@ -51,6 +48,15 @@
 								<span class="copilot-share-menu-dots" aria-hidden="true"></span>
 							</button>
 							<div class="copilot-share-menu-popup" id="copilotShareMenu" role="menu" hidden>
+								<button class="copilot-share-menu-item" id="importSessionBtn" type="button" role="menuitem" aria-label="Import A Session" title="Import A Session">
+									<span class="copilot-share-menu-item-icon import-session-icon" aria-hidden="true"></span>
+									<span class="copilot-share-menu-item-text">Import A Session</span>
+								</button>
+								<button class="copilot-share-menu-item" id="exportAllSessionBtn" type="button" role="menuitem" aria-label="Export All Sessions" title="Export All Sessions">
+									<span class="copilot-share-menu-item-icon icon-export-all" aria-hidden="true"></span>
+									<span class="copilot-share-menu-item-text">Export All Sessions</span>
+								</button>
+								<div class="copilot-share-menu-separator"></div>
 								<button class="copilot-share-menu-item" id="copyPublicUrlMenuItem" type="button" role="menuitem">
 									<span class="copilot-share-menu-item-icon icon-copy" aria-hidden="true"></span>
 									<span class="copilot-share-menu-item-text" id="copyPublicUrlMenuLabel">Copy Public URL</span>
@@ -87,7 +93,7 @@
 						<button class="dialog-header-search-nav" id="messageSearchNextBtn" type="button" aria-label="Next Match">&gt;</button>
 						<button class="dialog-header-search-exit" id="closeMessageSearchBtn" type="button" aria-label="Exit Search" title="Exit Search">&times;</button>
 					</div>
-					<button class="dialog-header-export-btn" id="dialogHeaderExportBtn" type="button" aria-label="Export Conversations" title="Export Conversations">
+					<button class="dialog-header-export-btn" id="dialogHeaderExportBtn" type="button" aria-label="Export Session" title="Export Session">
 						<span class="dialog-header-export-icon" aria-hidden="true"></span>
 					</button>
 					<div class="copilot-share-menu">
@@ -168,6 +174,7 @@
 	<script src="./vendor/marked.umd.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/marked/marked.min.js';"></script>
 	<script src="./vendor/purify.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js';"></script>
 	<script src="./vendor/highlight.common.bundle.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/lib/common.min.js';"></script>
+	<script src="./vendor/jszip.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';"></script>
 	<script src="./markdown.js"></script>
 	<script src="./copilot-share.js"></script>
 	<script src="./app.js"></script>

@@ -753,6 +753,10 @@ body {
 	background-image: url("./icons/globe.svg");
 }
 
+.copilot-share-menu-item-icon.icon-export-all {
+	background-image: url("./icons/sign-out.svg");
+}
+
 .copilot-share-menu-item-icon.icon-reset {
 	background-image: url("./icons/eraser.svg");
 }

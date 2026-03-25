@@ -359,11 +359,14 @@ const messagesEl = document.getElementById("messages");
 const promptInputEl = document.getElementById("promptInput");
 const modelSelectEl = document.getElementById("modelSelect");
 const importSessionBtnEl = document.getElementById("importSessionBtn");
+const exportAllSessionBtnEl = document.getElementById("exportAllSessionBtn");
 const clearSessionHistoryBtnEl = document.getElementById("clearSessionHistoryBtn");
 const resetContextBtnEl = document.getElementById("resetContextBtn");
 const dialogHeaderExportBtnEl = document.getElementById("dialogHeaderExportBtn");
 const dialogHeaderMenuBtnEl = document.getElementById("dialogHeaderMenuBtn");
 const dialogHeaderMenuEl = document.getElementById("dialogHeaderMenu");
+const copilotShareMenuBtnEl = document.getElementById("copilotShareMenuBtn");
+const copilotShareMenuEl = document.getElementById("copilotShareMenu");
 const sendBtnEl = document.getElementById("sendBtn");
 const mobileBackBtnEl = document.getElementById("mobileBackBtn");
 const sidebarToggleBtnEl = document.getElementById("sidebarToggleBtn");
@@ -669,6 +672,63 @@ function downloadSessionAsMarkdown() {
 	window.setTimeout(() => {
 		URL.revokeObjectURL(blobUrl);
 	}, 0);
+}
+
+function downloadBlob(blob, fileName) {
+	const blobUrl = URL.createObjectURL(blob);
+	const anchor = document.createElement("a");
+	anchor.href = blobUrl;
+	anchor.download = fileName;
+	anchor.rel = "noopener";
+	document.body.append(anchor);
+	anchor.click();
+	anchor.remove();
+
+	window.setTimeout(() => {
+		URL.revokeObjectURL(blobUrl);
+	}, 0);
+}
+
+function closeCopilotShareMenu() {
+	if (copilotShareMenuEl instanceof HTMLElement) {
+		copilotShareMenuEl.hidden = true;
+	}
+	if (copilotShareMenuBtnEl instanceof HTMLElement) {
+		copilotShareMenuBtnEl.setAttribute("aria-expanded", "false");
+	}
+}
+
+async function downloadAllSessionsAsZip() {
+	if (!Array.isArray(sessions) || !sessions.length) {
+		return;
+	}
+
+	const JSZipCtor = window.JSZip;
+	if (typeof JSZipCtor !== "function") {
+		window.alert("ZIP export is unavailable because the archive library did not load.");
+		return;
+	}
+
+	const exportStamp = formatDateTimeForFileName(Date.now());
+	const zip = new JSZipCtor();
+	sessions.forEach((session, index) => {
+		if (!session || !session.id) {
+			return;
+		}
+
+		const markdown = buildSessionMarkdown(session);
+		const safeName = sanitizeFileName(session.name);
+		const fileName = `${safeName}-${session.id}-${exportStamp}-${String(index + 1).padStart(2, "0")}.md`;
+		zip.file(fileName, markdown);
+	});
+
+	const zipBlob = await zip.generateAsync({
+		type: "blob",
+		compression: "DEFLATE",
+		compressionOptions: { level: 6 }
+	});
+	const archiveName = `copilot-share-sessions-${exportStamp}.zip`;
+	downloadBlob(zipBlob, archiveName);
 }
 
 function parseSessionTimestamp(value) {
@@ -1615,7 +1675,23 @@ newSessionBtnEl.addEventListener("click", () => {
 
 if (importSessionBtnEl) {
 	importSessionBtnEl.addEventListener("click", () => {
+		closeCopilotShareMenu();
 		void importSessionFromMarkdown();
+	});
+}
+
+if (exportAllSessionBtnEl) {
+	exportAllSessionBtnEl.addEventListener("click", async () => {
+		exportAllSessionBtnEl.disabled = true;
+		const originalLabel = exportAllSessionBtnEl.innerHTML;
+		exportAllSessionBtnEl.innerHTML = '<span class="copilot-share-menu-item-icon icon-export-all" aria-hidden="true"></span><span class="copilot-share-menu-item-text">Exporting...</span>';
+		try {
+			await downloadAllSessionsAsZip();
+		} finally {
+			exportAllSessionBtnEl.disabled = false;
+			exportAllSessionBtnEl.innerHTML = originalLabel;
+		}
+		closeCopilotShareMenu();
 	});
 }
 

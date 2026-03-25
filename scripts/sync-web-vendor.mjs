@@ -21,6 +21,10 @@ const filesToCopy = [
 	{
 		source: path.join(projectRoot, 'node_modules', 'github-markdown-css', 'github-markdown.css'),
 		target: path.join(vendorDir, 'github-markdown.css')
+	},
+	{
+		source: path.join(projectRoot, 'node_modules', 'jszip', 'dist', 'jszip.min.js'),
+		target: path.join(vendorDir, 'jszip.min.js')
 	}
 ];
 
