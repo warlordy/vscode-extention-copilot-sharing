@@ -1155,7 +1155,7 @@ body {
 .message-row {
 	display: flex;
 	gap: 10px;
-	align-items: flex-end;
+	align-items: flex-start;
 }
 
 .message-row.user {
