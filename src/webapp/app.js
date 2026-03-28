@@ -360,7 +360,7 @@ const appEl = document.getElementById("app");
 const newSessionBtnEl = document.getElementById("newSessionBtn");
 const sessionListEl = document.getElementById("sessionList");
 const dialogTitleEl = document.getElementById("dialogTitle");
-const dialogSubtitleEl = document.getElementById("dialogSubtitle");
+const messageSelectionStatusEl = document.getElementById("messageSelectionStatus");
 const messagesEl = document.getElementById("messages");
 const promptInputEl = document.getElementById("promptInput");
 const modelSelectEl = document.getElementById("modelSelect");
@@ -381,6 +381,56 @@ const sidebarEl = document.querySelector(".sidebar");
 const defaultPromptPlaceholder = promptInputEl?.getAttribute("placeholder") || "Type your request to Copilot...";
 
 let sessionHoverPopupEl = null;
+let messageContextMenuEl = null;
+let activeMessageContextId = null;
+let isMessageMultiSelectMode = false;
+const selectedMessageKeys = new Set();
+
+const MESSAGE_CONTEXT_MENU_ITEMS = [
+	{ action: "copy", label: "Copy", glyph: "⧉" },
+	{ action: "reference", label: "Reference", glyph: "⌁" },
+	{ action: "share", label: "Share", glyph: "⤴" },
+	{ action: "favorites", label: "Favorites", glyph: "☆" },
+	{ action: "select-multiple", label: "Select Multiple", glyph: "✓" },
+	{ action: "delete", label: "Delete", glyph: "×", danger: true }
+];
+
+function normalizeMessageState(message) {
+	if (!message || typeof message !== "object") {
+		return;
+	}
+
+	if (typeof message.isFavorite !== "boolean") {
+		message.isFavorite = false;
+	}
+}
+
+function getMessageContextMenuItemConfig(action) {
+	return MESSAGE_CONTEXT_MENU_ITEMS.find((item) => item.action === action) || null;
+}
+
+function setMessageContextMenuItemPresentation(action, { label, glyph, disabled = false } = {}) {
+	if (!messageContextMenuEl) {
+		return;
+	}
+
+	const itemEl = messageContextMenuEl.querySelector(`.message-context-menu-item[data-action="${action}"]`);
+	if (!(itemEl instanceof HTMLButtonElement)) {
+		return;
+	}
+
+	const config = getMessageContextMenuItemConfig(action);
+	const glyphEl = itemEl.querySelector(".message-context-menu-glyph");
+	const labelEl = itemEl.querySelector(".copilot-share-menu-item-text");
+	if (glyphEl) {
+		glyphEl.textContent = glyph || config?.glyph || "";
+	}
+	if (labelEl) {
+		labelEl.textContent = label || config?.label || "";
+	}
+	itemEl.disabled = Boolean(disabled);
+	itemEl.setAttribute("aria-disabled", itemEl.disabled ? "true" : "false");
+}
 
 function ensureSessionHoverPopup() {
 	if (sessionHoverPopupEl) {
@@ -401,6 +451,338 @@ function hideSessionHoverPopup() {
 	}
 	sessionHoverPopupEl.classList.remove("show");
 	sessionHoverPopupEl.hidden = true;
+}
+
+function ensureMessageContextMenu() {
+	if (messageContextMenuEl) {
+		return messageContextMenuEl;
+	}
+
+	const popup = document.createElement("div");
+	popup.className = "copilot-share-menu-popup message-context-menu";
+	popup.hidden = true;
+	popup.setAttribute("role", "menu");
+	popup.setAttribute("aria-label", "Message actions");
+	popup.innerHTML = MESSAGE_CONTEXT_MENU_ITEMS.map((item) => {
+		if (item.type === "separator") {
+			return '<div class="copilot-share-menu-separator message-context-menu-separator" role="separator"></div>';
+		}
+
+		return `
+			<button
+				class="copilot-share-menu-item message-context-menu-item${item.danger ? " delete" : ""}"
+				type="button"
+				data-action="${item.action}"
+				role="menuitem"
+			>
+				<span class="copilot-share-menu-item-icon message-context-menu-glyph session-menu-glyph" aria-hidden="true">${escapeHtml(item.glyph || "")}</span>
+				<span class="copilot-share-menu-item-text">${escapeHtml(item.label)}</span>
+			</button>
+		`;
+	}).join("");
+	document.body.appendChild(popup);
+	messageContextMenuEl = popup;
+	return popup;
+}
+
+function clearActiveMessageContextRow() {
+	if (!activeMessageContextId || !messagesEl) {
+		return;
+	}
+
+	const activeRow = messagesEl.querySelector(`.message-row[data-message-id="${activeMessageContextId}"]`);
+	if (activeRow instanceof HTMLElement) {
+		activeRow.classList.remove("is-context-menu-open");
+	}
+}
+
+function hideMessageContextMenu() {
+	clearActiveMessageContextRow();
+	activeMessageContextId = null;
+
+	if (!messageContextMenuEl) {
+		return;
+	}
+
+	messageContextMenuEl.hidden = true;
+	messageContextMenuEl.style.left = "";
+	messageContextMenuEl.style.top = "";
+	delete messageContextMenuEl.dataset.messageId;
+	delete messageContextMenuEl.dataset.sessionId;
+	delete messageContextMenuEl.dataset.role;
+}
+
+function showMessageContextMenu(rowEl, clientX, clientY) {
+	if (!(rowEl instanceof HTMLElement)) {
+		return;
+	}
+
+	hideMessageContextMenu();
+	const popup = ensureMessageContextMenu();
+	activeMessageContextId = String(rowEl.dataset.messageId || "").trim() || null;
+	if (activeMessageContextId) {
+		rowEl.classList.add("is-context-menu-open");
+		popup.dataset.messageId = activeMessageContextId;
+	}
+
+	popup.dataset.sessionId = String(rowEl.dataset.sessionId || "").trim();
+	popup.dataset.role = String(rowEl.dataset.role || "").trim();
+	updateMessageContextMenuState(popup.dataset.sessionId, activeMessageContextId || "");
+	popup.style.left = `${Math.round(clientX)}px`;
+	popup.style.top = `${Math.round(clientY)}px`;
+	popup.hidden = false;
+	requestMenuPopupClamp();
+}
+
+function getMessageSelectionKey(sessionId, messageId) {
+	return `${String(sessionId || "").trim()}::${String(messageId || "").trim()}`;
+}
+
+function isMessageSelected(sessionId, messageId) {
+	return selectedMessageKeys.has(getMessageSelectionKey(sessionId, messageId));
+}
+
+function clearMessageSelections({ keepMode = false } = {}) {
+	selectedMessageKeys.clear();
+	if (!keepMode) {
+		isMessageMultiSelectMode = false;
+	}
+}
+
+function setMessageMultiSelectMode(enabled, sessionId, messageId) {
+	if (!enabled) {
+		clearMessageSelections();
+		return;
+	}
+
+	isMessageMultiSelectMode = true;
+	selectedMessageKeys.clear();
+	if (sessionId && messageId) {
+		selectedMessageKeys.add(getMessageSelectionKey(sessionId, messageId));
+	}
+}
+
+function syncMessageSelectionForActiveSession(activeSession) {
+	if (!activeSession) {
+		clearMessageSelections();
+		return;
+	}
+
+	const validKeys = new Set(
+		activeSession.messages.map((message) => getMessageSelectionKey(activeSession.id, message.id))
+	);
+
+	for (const key of Array.from(selectedMessageKeys)) {
+		if (!validKeys.has(key)) {
+			selectedMessageKeys.delete(key);
+		}
+	}
+
+	if (!selectedMessageKeys.size) {
+		isMessageMultiSelectMode = false;
+	}
+}
+
+function getMessageRecordsForContextAction(sessionId, messageId) {
+	const session = sessions.find((item) => item.id === sessionId);
+	if (!session) {
+		return [];
+	}
+
+	const focusKey = getMessageSelectionKey(sessionId, messageId);
+	if (isMessageMultiSelectMode && selectedMessageKeys.has(focusKey)) {
+		return session.messages.filter((message) => selectedMessageKeys.has(getMessageSelectionKey(sessionId, message.id)));
+	}
+
+	const single = session.messages.find((message) => message.id === messageId);
+	return single ? [single] : [];
+}
+
+function updateMessageContextMenuState(sessionId, messageId) {
+	ensureMessageContextMenu();
+	const records = getMessageRecordsForContextAction(sessionId, messageId);
+	const count = records.length;
+	const isBatch = count > 1;
+	const countSuffix = isBatch ? ` (${count})` : "";
+	const allFavorited = count > 0 && records.every((message) => message.isFavorite === true);
+	const isLocked = isSessionLocked(sessionId);
+
+	setMessageContextMenuItemPresentation("copy", {
+		label: isBatch ? `Copy Selected${countSuffix}` : "Copy",
+		disabled: count < 1
+	});
+	setMessageContextMenuItemPresentation("export", {
+		label: isBatch ? `Export Selected${countSuffix}` : "Export",
+		disabled: count < 1
+	});
+	setMessageContextMenuItemPresentation("favorites", {
+		label: isBatch
+			? (allFavorited ? `Remove Favorites${countSuffix}` : `Favorite Selected${countSuffix}`)
+			: (allFavorited ? "Remove Favorite" : "Favorite"),
+		glyph: allFavorited ? "★" : "☆",
+		disabled: isLocked || count < 1
+	});
+	setMessageContextMenuItemPresentation("select-multiple", {
+		label: isMessageMultiSelectMode ? "Cancel Selecting" : "Select Multiple"
+	});
+	setMessageContextMenuItemPresentation("delete", {
+		label: isBatch ? `Delete Selected${countSuffix}` : "Delete",
+		disabled: isLocked || count < 1
+	});
+}
+
+function buildMessageRecordsMarkdown(messages) {
+	if (!Array.isArray(messages) || !messages.length) {
+		return "";
+	}
+
+	const lines = [];
+	const prefixArray = [
+		{ user: "💬", copilot: "✨"}, // 0
+		{ user: "🧑‍💻", copilot: "🤖"},
+		{ user: "👩‍🚀", copilot: "🛸"},
+		{ user: "🦸", copilot: "🦾"},
+		{ user: "🗣️", copilot: "💡"},
+		{ user: "🙋", copilot: "✨"}, // 5
+		{ user: "👨‍🎨", copilot: "🎨"},
+		{ user: "🧑‍🔬", copilot: "🧬"},
+		{ user: "🧑‍🏫", copilot: "📚"},
+		{ user: "👤", copilot: "🤖"},
+		{ user: "😃", copilot: "🚀"}, // 10
+	];
+	const prefix = prefixArray[10];
+	for (let index = 0; index < messages.length; index += 1) {
+		const message = messages[index];
+		const roleLabel = message.role === "agent" ? (prefix.copilot + " " + "Copilot") : (prefix.user + " " + "User");
+		const timestamp = Number.isFinite(message.timestamp) ? formatDateTime(message.timestamp) : "Unknown time";
+		lines.push(`**${roleLabel} (${timestamp})**`);
+		lines.push("");
+
+		if (message.role === "agent") {
+			const content = String(message.text || "").replace(/\r\n/g, "\n").trim();
+			lines.push(content || "_(empty Copilot message)_");
+		} else {
+			const content = String(message.text || "").replace(/\r\n/g, "\n").trim();
+			lines.push(content || "_(empty User message)_");
+		}
+
+		if (index < messages.length - 1) {
+			lines.push("");
+			lines.push("---");
+			lines.push("");
+		}
+	}
+
+	return lines.join("\n").trim();
+}
+
+async function copyTextToClipboard(text) {
+	const value = String(text || "");
+	if (!value) {
+		return;
+	}
+
+	if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+		await navigator.clipboard.writeText(value);
+		return;
+	}
+
+	const textarea = document.createElement("textarea");
+	textarea.value = value;
+	textarea.setAttribute("readonly", "true");
+	textarea.style.position = "fixed";
+	textarea.style.opacity = "0";
+	textarea.style.pointerEvents = "none";
+	document.body.appendChild(textarea);
+	textarea.select();
+	document.execCommand("copy");
+	textarea.remove();
+}
+
+async function copyMessageRecords(messages) {
+	const markdown = buildMessageRecordsMarkdown(messages);
+	if (!markdown) {
+		return;
+	}
+
+	await copyTextToClipboard(markdown);
+}
+
+function exportMessageRecords(sessionId, messages) {
+	const markdown = buildMessageRecordsMarkdown(messages);
+	if (!markdown) {
+		return;
+	}
+
+	const session = sessions.find((item) => item.id === sessionId);
+	const sessionName = session ? session.name : "messages";
+	const safeName = sanitizeFileName(sessionName);
+	const stamp = formatDateTimeForFileName(Date.now());
+	const scope = messages.length > 1 ? `${messages.length}-messages` : "message";
+	const fileName = `${safeName}-${scope}-${stamp}.md`;
+	const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+	downloadBlob(blob, fileName);
+}
+
+function toggleFavoriteForMessageRecords(sessionId, messages) {
+	if (isSessionLocked(sessionId) || !Array.isArray(messages) || !messages.length) {
+		return false;
+	}
+
+	const session = sessions.find((item) => item.id === sessionId);
+	if (!session) {
+		return false;
+	}
+
+	const targetIds = new Set(messages.map((message) => message.id));
+	const shouldFavorite = messages.some((message) => message.isFavorite !== true);
+	let didChange = false;
+
+	for (const message of session.messages) {
+		if (!targetIds.has(message.id)) {
+			continue;
+		}
+
+		normalizeMessageState(message);
+		if (message.isFavorite !== shouldFavorite) {
+			message.isFavorite = shouldFavorite;
+			didChange = true;
+		}
+	}
+
+	if (!didChange) {
+		return true;
+	}
+
+	renderMessages({ preserveScroll: true });
+	saveState();
+	return true;
+}
+
+function deleteMessageRecords(sessionId, messages) {
+	if (isSessionLocked(sessionId) || !Array.isArray(messages) || !messages.length) {
+		return false;
+	}
+
+	const session = sessions.find((item) => item.id === sessionId);
+	if (!session) {
+		return false;
+	}
+
+	const targetIds = new Set(messages.map((message) => message.id));
+	const count = targetIds.size;
+	const promptText = count > 1
+		? `Delete ${count} selected messages?`
+		: "Delete this message?";
+	if (!window.confirm(promptText)) {
+		return false;
+	}
+
+	session.messages = session.messages.filter((message) => !targetIds.has(message.id));
+	clearMessageSelections();
+	renderAll();
+	saveState();
+	return true;
 }
 
 function getMenuPopupBoundaryRect() {
@@ -820,7 +1202,8 @@ function parseSessionMessagesFromMarkdown(markdown) {
 				id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
 				role,
 				text: "",
-				timestamp
+				timestamp,
+				isFavorite: false
 			});
 			break;
 		}
@@ -848,7 +1231,8 @@ function parseSessionMessagesFromMarkdown(markdown) {
 			id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
 			role,
 			text: contentLines.join("\n"),
-			timestamp
+			timestamp,
+			isFavorite: false
 		});
 	}
 
@@ -978,6 +1362,14 @@ function normalizeSessionState(session) {
 	if (!session || typeof session !== "object") {
 		return;
 	}
+
+	if (!Array.isArray(session.messages)) {
+		session.messages = [];
+	}
+
+	session.messages.forEach((message) => {
+		normalizeMessageState(message);
+	});
 
 	if (typeof session.isOpen !== "boolean") {
 		session.isOpen = true;
@@ -1194,7 +1586,7 @@ function renameSession(sessionId) {
 		return;
 	}
 	target.name = trimmed;
-	renderAll();
+	renderAll({ preserveMessageScroll: true });
 	saveState();
 }
 
@@ -1206,7 +1598,7 @@ function toggleSessionOpenState(sessionId) {
 
 	normalizeSessionState(target);
 	target.isOpen = !target.isOpen;
-	renderAll();
+	renderAll({ preserveMessageScroll: true });
 	saveState();
 }
 
@@ -1256,7 +1648,8 @@ function addMessageToActiveSession(role, text) {
 		id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
 		role,
 		text,
-		timestamp: Date.now()
+		timestamp: Date.now(),
+		isFavorite: false
 	});
 }
 
@@ -1343,15 +1736,30 @@ function renderSessionList() {
 		.join("");
 }
 
-function renderMessages() {
+function renderMessages({ preserveScroll = false } = {}) {
+	hideMessageContextMenu();
+	const previousScrollTop = preserveScroll ? messagesEl.scrollTop : 0;
+
 	const active = getActiveSession();
 	if (!active) {
 		dialogTitleEl.textContent = "Select a session";
+		if (messageSelectionStatusEl) {
+			messageSelectionStatusEl.textContent = "";
+			messageSelectionStatusEl.hidden = true;
+		}
 		messagesEl.innerHTML = `<div class="empty">Create or select a session to start your dialog</div>`;
 		return;
 	}
 
 	dialogTitleEl.textContent = active.name;
+	syncMessageSelectionForActiveSession(active);
+	if (messageSelectionStatusEl) {
+		const selectionStatus = isMessageMultiSelectMode && selectedMessageKeys.size
+			? `${selectedMessageKeys.size} selected`
+			: "";
+		messageSelectionStatusEl.textContent = selectionStatus;
+		messageSelectionStatusEl.hidden = !selectionStatus;
+	}
 
 	if (!active.messages.length) {
 		messagesEl.innerHTML = `<div class="empty">No messages yet. Type below to start.</div>`;
@@ -1373,9 +1781,11 @@ function renderMessages() {
 		const bubbleContent = msg.role === "agent"
 			? `<div class="md-content markdown-body">${markdownRenderer(msg.text)}</div>`
 			: escapeHtml(msg.text);
+		const selectedClass = isMessageSelected(active.id, msg.id) ? " is-selected" : "";
+		const favoriteClass = msg.isFavorite ? " is-favorite" : "";
 
 		parts.push(`
-			<div class="message-row ${msg.role}">
+			<div class="message-row ${msg.role}${selectedClass}${favoriteClass}" data-message-id="${msg.id}" data-session-id="${active.id}" data-role="${msg.role}">
 				${msg.role === "agent" ? `<div class="role-tag">AI</div>` : ""}
 				<div class="${bubbleClass}">${bubbleContent}</div>
 				${msg.role === "user" ? `<div class="role-tag">You</div>` : ""}
@@ -1400,13 +1810,17 @@ function renderMessages() {
 	if (typeof window.applyMarkdownCodeHighlight === "function") {
 		window.applyMarkdownCodeHighlight(messagesEl);
 	}
-	messagesEl.scrollTop = messagesEl.scrollHeight;
+	if (preserveScroll) {
+		messagesEl.scrollTop = previousScrollTop;
+	} else {
+		messagesEl.scrollTop = messagesEl.scrollHeight;
+	}
 	refreshMessageSearch({ scrollToActive: currentMatchIdx >= 0 });
 }
 
-function renderAll() {
+function renderAll({ preserveMessageScroll = false } = {}) {
 	renderSessionList();
-	renderMessages();
+	renderMessages({ preserveScroll: preserveMessageScroll });
 	if (typeof window.syncModelPickerForActiveSession === "function") {
 		window.syncModelPickerForActiveSession();
 	}
@@ -1636,7 +2050,8 @@ window.startAgentMessageStream = function startAgentMessageStream(sessionId) {
 		id: messageId,
 		role: "agent",
 		text: "",
-		timestamp: Date.now()
+		timestamp: Date.now(),
+		isFavorite: false
 	});
 
 	renderAll();
@@ -1689,7 +2104,8 @@ window.appendAgentMessage = function appendAgentMessage(sessionId, text) {
 		id: `m_${Date.now()}_${Math.random().toString(16).slice(2, 7)}`,
 		role: "agent",
 		text: String(text),
-		timestamp: Date.now()
+		timestamp: Date.now(),
+		isFavorite: false
 	});
 
 	renderAll();
@@ -1890,7 +2306,7 @@ sessionListEl.addEventListener("drop", (event) => {
 	if (didMove) {
 		hasCustomSessionOrder = true;
 		suppressSessionClickUntil = Date.now() + 300;
-		renderAll();
+		renderAll({ preserveMessageScroll: true });
 		saveState();
 	}
 });
@@ -1968,6 +2384,152 @@ sessionListEl.addEventListener("focusout", (event) => {
 		return;
 	}
 	hideSessionHoverPopup();
+});
+
+messagesEl.addEventListener("contextmenu", (event) => {
+	const target = event.target;
+	if (!(target instanceof HTMLElement)) {
+		return;
+	}
+
+	const row = target.closest(".message-row[data-message-id]");
+	if (!(row instanceof HTMLElement)) {
+		return;
+	}
+
+	event.preventDefault();
+	event.stopPropagation();
+	showMessageContextMenu(row, event.clientX, event.clientY);
+});
+
+messagesEl.addEventListener("click", (event) => {
+	const target = event.target;
+	if (target instanceof HTMLElement && isMessageMultiSelectMode) {
+		const bubble = target.closest(".message-row[data-message-id] .bubble");
+		const row = bubble instanceof HTMLElement ? bubble.closest(".message-row[data-message-id]") : null;
+		if (row instanceof HTMLElement) {
+			const sessionId = String(row.dataset.sessionId || "").trim();
+			const messageId = String(row.dataset.messageId || "").trim();
+			if (sessionId && messageId) {
+				const key = getMessageSelectionKey(sessionId, messageId);
+				if (selectedMessageKeys.has(key)) {
+					selectedMessageKeys.delete(key);
+				} else {
+					selectedMessageKeys.add(key);
+				}
+				if (!selectedMessageKeys.size) {
+					isMessageMultiSelectMode = false;
+				}
+				renderMessages({ preserveScroll: true });
+			}
+		}
+	}
+
+	hideMessageContextMenu();
+});
+
+document.addEventListener("click", (event) => {
+	const inMessageMenu = event.target instanceof Element && Boolean(event.target.closest(".message-context-menu"));
+	if (!inMessageMenu) {
+		hideMessageContextMenu();
+	}
+});
+
+document.addEventListener("contextmenu", (event) => {
+	const inMessageMenu = event.target instanceof Element && Boolean(event.target.closest(".message-context-menu"));
+	const inMessageRow = event.target instanceof Element && Boolean(event.target.closest(".message-row[data-message-id]"));
+	if (!inMessageMenu && !inMessageRow) {
+		hideMessageContextMenu();
+	}
+});
+
+document.addEventListener("keydown", (event) => {
+	if (event.key === "Escape") {
+		if (messageContextMenuEl && !messageContextMenuEl.hidden) {
+			hideMessageContextMenu();
+			return;
+		}
+
+		if (isMessageMultiSelectMode) {
+			clearMessageSelections();
+			renderMessages({ preserveScroll: true });
+		}
+	}
+});
+
+if (messagesEl) {
+	messagesEl.addEventListener("mousedown", (event) => {
+		if (event.button !== 2) {
+			hideMessageContextMenu();
+		}
+	});
+}
+
+document.addEventListener("click", async (event) => {
+	const target = event.target;
+	if (!(target instanceof HTMLElement)) {
+		return;
+	}
+
+	const menuAction = target.closest(".message-context-menu-item");
+	if (!menuAction) {
+		return;
+	}
+	if (menuAction instanceof HTMLButtonElement && menuAction.disabled) {
+		return;
+	}
+
+	event.preventDefault();
+	event.stopPropagation();
+
+	const action = String(menuAction.getAttribute("data-action") || "").trim();
+	const sessionId = messageContextMenuEl ? String(messageContextMenuEl.dataset.sessionId || "").trim() : "";
+	const messageId = messageContextMenuEl ? String(messageContextMenuEl.dataset.messageId || "").trim() : "";
+
+	if (!action || !sessionId || !messageId) {
+		hideMessageContextMenu();
+		return;
+	}
+
+	if (action === "select-multiple") {
+		if (isMessageMultiSelectMode) {
+			clearMessageSelections();
+		} else {
+			setMessageMultiSelectMode(true, sessionId, messageId);
+		}
+		renderMessages({ preserveScroll: true });
+		hideMessageContextMenu();
+		return;
+	}
+
+	const records = getMessageRecordsForContextAction(sessionId, messageId);
+	if (!records.length) {
+		hideMessageContextMenu();
+		return;
+	}
+
+	if (action === "copy") {
+		try {
+			await copyMessageRecords(records);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			window.alert(`Copy failed: ${message}`);
+		}
+	}
+
+	if (action === "export") {
+		exportMessageRecords(sessionId, records);
+	}
+
+	if (action === "favorites") {
+		toggleFavoriteForMessageRecords(sessionId, records);
+	}
+
+	if (action === "delete") {
+		deleteMessageRecords(sessionId, records);
+	}
+
+	hideMessageContextMenu();
 });
 
 sendBtnEl.addEventListener("click", handlePrimaryActionClick);
@@ -2127,10 +2689,12 @@ window.addEventListener("resize", () => {
 	}
 	applySidebarState();
 	hideSessionHoverPopup();
+	hideMessageContextMenu();
 	requestMenuPopupClamp();
 });
 
 window.addEventListener("scroll", hideSessionHoverPopup, { passive: true });
+window.addEventListener("scroll", hideMessageContextMenu, { passive: true });
 
 if (sidebarToggleBtnEl) {
 	sidebarToggleBtnEl.addEventListener("click", toggleSidebarCollapse);

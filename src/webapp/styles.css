@@ -787,6 +787,71 @@ body {
 	filter: grayscale(1);
 }
 
+.message-context-menu {
+	position: fixed;
+	left: 0;
+	top: 0;
+	right: auto;
+	min-width: 166px;
+	width: max-content;
+	max-width: min(210px, calc(100vw - 24px));
+	z-index: 18;
+	padding: 6px;
+}
+
+.message-context-menu .copilot-share-menu-item {
+	padding: 8px 9px;
+	gap: 7px;
+}
+
+.message-context-menu .copilot-share-menu-item:hover {
+	background: #dfece5;
+	color: #223243;
+}
+
+.message-context-menu-separator {
+	margin: 6px 4px;
+	background: linear-gradient(90deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.7), rgba(148, 163, 184, 0.08));
+}
+
+.message-context-menu .copilot-share-menu-item + .copilot-share-menu-item {
+	margin-top: 2px;
+	padding-top: 7px;
+	border-top: none;
+	border-top-left-radius: 8px;
+	border-top-right-radius: 8px;
+}
+
+.message-context-menu-glyph {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	flex: 0 0 16px;
+	border: 1px solid #d7e1ea;
+	border-radius: 5px;
+	background: #f7fbff;
+	color: #4b5b6c;
+	font-size: 10px;
+	line-height: 1;
+}
+
+.message-context-menu-item.delete {
+	color: #b4232f;
+}
+
+.message-context-menu-item.delete:hover {
+	background: #fde8ea;
+	color: #9f1f2a;
+}
+
+.message-context-menu-item.delete .message-context-menu-glyph {
+	border-color: #f3c2c7;
+	background: #fff4f5;
+	color: #b4232f;
+}
+
 .copilot-share-value {
 	font-size: 12px;
 	line-height: 1.35;
@@ -1107,12 +1172,29 @@ body {
 	min-width: 0;
 }
 
+.dialog-title-meta {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	gap: 2px;
+}
+
 .dialog-title-text {
 	font-size: 17px;
 	font-weight: 700;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.dialog-title-status {
+	font-size: 12px;
+	line-height: 1.2;
+	color: var(--muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-height: 1.2em;
 }
 
 .dialog-subtitle {
@@ -1156,6 +1238,40 @@ body {
 	display: flex;
 	gap: 10px;
 	align-items: flex-start;
+}
+
+.message-row.is-context-menu-open .bubble {
+	border-color: rgba(7, 193, 96, 0.35);
+	box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.message-row.is-selected .bubble {
+	border-color: rgba(34, 113, 203, 0.42);
+	box-shadow: 0 0 0 3px rgba(34, 113, 203, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.message-row.is-favorite .bubble {
+	padding-right: 44px;
+}
+
+.message-row.is-favorite .bubble::after {
+	content: "★";
+	position: absolute;
+	top: 7px;
+	right: 9px;
+	width: 20px;
+	height: 20px;
+	display: grid;
+	place-items: center;
+	border-radius: 999px;
+	font-size: 14px;
+	font-weight: 800;
+	line-height: 1;
+	font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "Noto Sans Symbols", sans-serif;
+	color: #8a5f00;
+	background: #fff2bf;
+	border: 1px solid #e2bb3b;
+	box-shadow: 0 1px 2px rgba(138, 95, 0, 0.22);
 }
 
 .message-row.user {
@@ -1230,6 +1346,7 @@ body {
 	white-space: pre-wrap;
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 	border: 1px solid rgba(0, 0, 0, 0.04);
+	position: relative;
 }
 
 .message-row.user .bubble {
