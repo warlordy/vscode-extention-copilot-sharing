@@ -9,7 +9,7 @@
 }
 /* Search button in dialog header */
 .dialog-header-search-btn,
-.dialog-header-export-btn {
+.dialog-header-share-btn {
 	width: 28px;
 	height: 28px;
 	border: 1px solid #d0d7de;
@@ -28,7 +28,7 @@
 	display: none !important;
 }
 
-.dialog-header-export-btn[hidden] {
+.dialog-header-share-btn[hidden] {
 	display: none !important;
 }
 
@@ -42,12 +42,12 @@
 }
 
 .dialog-header-search-btn:hover,
-.dialog-header-export-btn:hover {
+.dialog-header-share-btn:hover {
 	background: #f3f5f9;
 	border-color: #c2c8d0;
 }
 
-.dialog-header-export-btn:disabled {
+.dialog-header-share-btn:disabled {
 	background: #f5f7fa;
 	border-color: #dde3ea;
 	cursor: not-allowed;
@@ -55,7 +55,7 @@
 }
 
 .dialog-header-search-btn:focus-visible,
-.dialog-header-export-btn:focus-visible {
+.dialog-header-share-btn:focus-visible {
 	outline: none;
 	border-color: #9ed7b8;
 	box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.16);
@@ -71,11 +71,11 @@
 	background-size: 16px 16px;
 }
 
-.dialog-header-export-icon {
+.dialog-header-share-icon {
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/sign-out.svg");
+	background-image: url("./icons/share.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
@@ -792,6 +792,14 @@ body {
 
 .copilot-share-menu-item-icon.icon-export-all {
 	background-image: url("./icons/sign-out.svg");
+}
+
+.copilot-share-menu-item-icon.icon-export-session {
+	background-image: url("./icons/sign-out.svg");
+}
+
+.copilot-share-menu-item-icon.icon-share-session-list {
+	background-image: url("./icons/share.svg");
 }
 
 .copilot-share-menu-item-icon.icon-reset {
