@@ -21,21 +21,20 @@ const SESSION_SUMMARY_PROMPT_LINES = [
 	'3. Then provide a separate section for each major topic.',
 	'4. For each topic, summarize:',
 	'   - the user\'s key requests, goals, or questions',
-	'   - the important answers, proposed solutions, technical decisions, or conclusions',
+	'   - the important answers, proposed solutions, technical decisions, code snippets and conclusions',
 	'   - any remaining open issues, risks, tradeoffs, or next steps when they are clearly present',
 	'5. Remove noise, repetition, filler, off-topic content, and trivial back-and-forth that does not affect the core discussion.',
-	'6. Preserve important technical details such as file names, APIs, commands, configuration names, constraints, and chosen approaches when they matter.',
+	'6. Preserve important technical details such as code snippets, file names, APIs, commands, configuration names, constraints, and chosen approaches when they matter.',
 	'7. Do not invent facts, decisions, or requirements that are not supported by the conversation.',
 	'8. Merge duplicate points and present the result in a concise but information-dense way.',
-	'9. Use clear Markdown headings and bullet points for readability.',
+	'9. Format the markdown output clearly using Markdown headings (starting from ###) and bullet points for readability.',
 	'10. Write with clarity and professionalism, avoiding conversational filler.',
 	'',
 	'Preferred output structure:',
-	'- Session Overview',
-	'- Topic 1',
-	'- Topic 2',
-	'- Topic 3',
-	'- Open Items / Next Steps (only if applicable)'
+	'### Session Overview',
+	'### Topic 1',
+	'### Topic 2',
+	'### Topic 3',
 ];
 const FILTERED_MODEL_IDS = new Set([
 	// Model: "GPT-4o mini". Filtered out due to lower token limits and inconsistent visibility in VS Code Copilot.

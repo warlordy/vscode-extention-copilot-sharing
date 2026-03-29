@@ -459,7 +459,11 @@ let activeSessionId = null;
 let typingSessionId = null;
 let typingTimeoutId = null;
 let dialogHeaderCopyFeedbackTimeoutId = null;
+let sessionSummaryCopyFeedbackTimeoutId = null;
+let summaryNoticeTimeoutId = null;
 let dialogHeaderSummarizeBusy = false;
+let isSessionSummaryPageOpen = false;
+let detachedSessionSummaryWindow = null;
 let promptHistorySessionId = null;
 let promptHistoryIndex = -1;
 let promptHistoryDraft = "";
@@ -475,8 +479,15 @@ const appEl = document.getElementById("app");
 const newSessionBtnEl = document.getElementById("newSessionBtn");
 const sessionListEl = document.getElementById("sessionList");
 const dialogTitleEl = document.getElementById("dialogTitle");
+const dialogTitleSummaryBtnEl = document.getElementById("dialogTitleSummaryBtn");
 const messageSelectionStatusEl = document.getElementById("messageSelectionStatus");
 const messagesEl = document.getElementById("messages");
+const sessionSummaryPageEl = document.getElementById("sessionSummaryPage");
+const sessionSummaryContentEl = document.getElementById("sessionSummaryContent");
+const sessionSummaryCopyBtnEl = document.getElementById("sessionSummaryCopyBtn");
+const sessionSummaryShareBtnEl = document.getElementById("sessionSummaryShareBtn");
+const sessionSummaryClearBtnEl = document.getElementById("sessionSummaryClearBtn");
+const sessionSummaryDetachBtnEl = document.getElementById("sessionSummaryDetachBtn");
 const promptInputEl = document.getElementById("promptInput");
 const modelSelectEl = document.getElementById("modelSelect");
 const importSessionBtnEl = document.getElementById("importSessionBtn");
@@ -846,6 +857,44 @@ function showDialogHeaderCopyFeedback() {
 	}, 1200);
 }
 
+function showSessionSummaryCopyFeedback() {
+	if (!sessionSummaryCopyBtnEl) {
+		return;
+	}
+
+	sessionSummaryCopyBtnEl.classList.remove("is-copied");
+	void sessionSummaryCopyBtnEl.offsetWidth;
+	sessionSummaryCopyBtnEl.classList.add("is-copied");
+
+	if (sessionSummaryCopyFeedbackTimeoutId) {
+		window.clearTimeout(sessionSummaryCopyFeedbackTimeoutId);
+	}
+
+	sessionSummaryCopyFeedbackTimeoutId = window.setTimeout(() => {
+		sessionSummaryCopyBtnEl?.classList.remove("is-copied");
+		sessionSummaryCopyFeedbackTimeoutId = null;
+	}, 1200);
+}
+
+function showSummaryNoticeFeedback() {
+	if (!dialogTitleSummaryBtnEl) {
+		return;
+	}
+
+	dialogTitleSummaryBtnEl.classList.remove("has-new-summary");
+	void dialogTitleSummaryBtnEl.offsetWidth;
+	dialogTitleSummaryBtnEl.classList.add("has-new-summary");
+
+	if (summaryNoticeTimeoutId) {
+		window.clearTimeout(summaryNoticeTimeoutId);
+	}
+
+	summaryNoticeTimeoutId = window.setTimeout(() => {
+		dialogTitleSummaryBtnEl?.classList.remove("has-new-summary");
+		summaryNoticeTimeoutId = null;
+	}, 2600);
+}
+
 function exportMessageRecords(sessionId, messages) {
 	const markdown = buildMessageRecordsMarkdown(messages);
 	if (!markdown) {
@@ -863,17 +912,18 @@ function exportMessageRecords(sessionId, messages) {
 }
 
 function buildSessionSummaryMarkdown(summaryText, { sessionName = "Session", sessionId = "" } = {}) {
+	const generatedAt = Date.now();
 	const cleanedSummary = String(summaryText || "").replace(/\r\n/g, "\n").trim();
 	if (!cleanedSummary) {
 		return "";
 	}
 
 	const lines = [
-		"# Session Summary",
+		"## Session Summary",
 		"",
 		`- Session Name: ${String(sessionName || "Session")}`,
 		`- Session ID: ${String(sessionId || "") || "unknown"}`,
-		`- Generated At: ${formatDateTime(Date.now())}`,
+		`- Generated At: ${formatDateTime(generatedAt)}`,
 		"",
 		cleanedSummary
 	];
@@ -899,6 +949,236 @@ function downloadSessionSummary(session, summaryText) {
 	const fileName = `${safeName}-summary-${stamp}.md`;
 	const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
 	downloadBlob(blob, fileName);
+}
+
+function exportSessionSummaryMarkdown(session, markdown) {
+	if (!session) {
+		return;
+	}
+
+	const normalizedMarkdown = String(markdown || "").trim();
+	if (!normalizedMarkdown) {
+		return;
+	}
+
+	const safeName = sanitizeFileName(session.name || "session");
+	const stamp = formatDateTimeForFileName(Date.now());
+	const fileName = `${safeName}-summary-${stamp}.md`;
+	const blob = new Blob([normalizedMarkdown], { type: "text/markdown;charset=utf-8" });
+	downloadBlob(blob, fileName);
+}
+
+function getSessionSummaryMarkdown(session) {
+	if (!session || typeof session !== "object") {
+		return "";
+	}
+
+	return String(session.summaryMarkdown || "").trim();
+}
+
+function getDetachedSummaryWindow() {
+	if (!detachedSessionSummaryWindow) {
+		return null;
+	}
+
+	try {
+		if (detachedSessionSummaryWindow.closed) {
+			detachedSessionSummaryWindow = null;
+			return null;
+		}
+	} catch {
+		detachedSessionSummaryWindow = null;
+		return null;
+	}
+
+	return detachedSessionSummaryWindow;
+}
+
+function clearDetachedSummaryWindowReference() {
+	detachedSessionSummaryWindow = null;
+	updateInputActionStates();
+}
+
+function buildDetachedSummarySnapshot() {
+	const active = getActiveSession();
+	const sessionName = active?.name ? String(active.name) : "Session";
+	const contentHtml = sessionSummaryContentEl
+		? sessionSummaryContentEl.innerHTML
+		: '<div class="session-summary-empty">No summary available for this session yet.</div>';
+
+	return {
+		sessionName,
+		contentHtml
+	};
+}
+
+window.getDetachedSummarySnapshot = function getDetachedSummarySnapshot() {
+	return buildDetachedSummarySnapshot();
+};
+
+function syncDetachedSummaryWindowContent() {
+	const detachedWindow = getDetachedSummaryWindow();
+	if (!detachedWindow) {
+		return;
+	}
+
+	const snapshot = buildDetachedSummarySnapshot();
+
+	try {
+		if (typeof detachedWindow.syncSummaryContent === "function") {
+			detachedWindow.syncSummaryContent(snapshot);
+			return;
+		}
+
+		detachedWindow.addEventListener("load", () => {
+			try {
+				if (typeof detachedWindow.syncSummaryContent === "function") {
+					detachedWindow.syncSummaryContent(snapshot);
+				}
+			} catch {
+				clearDetachedSummaryWindowReference();
+			}
+		}, { once: true });
+	} catch {
+		clearDetachedSummaryWindowReference();
+	}
+}
+
+function openDetachedSessionSummaryWindow() {
+	const active = getActiveSession();
+	const markdown = active ? getSessionSummaryMarkdown(active) : "";
+	if (!active || !markdown) {
+		return;
+	}
+
+	renderSessionSummaryPage();
+
+	let detachedWindow = getDetachedSummaryWindow();
+	if (!detachedWindow) {
+		const width = 560;
+		const height = 520;
+		const left = Math.max(0, Math.round(window.screenX + Math.max(24, (window.outerWidth - width) / 2)));
+		const top = Math.max(0, Math.round(window.screenY + Math.max(24, (window.outerHeight - height) / 2)));
+		const summaryMiniUrl = new URL("./summary-mini.html", window.location.href).href;
+		detachedWindow = window.open(
+			summaryMiniUrl,
+			"copilotShareSessionSummaryMini",
+			`popup=yes,width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,location=no,toolbar=no,menubar=no,status=no`
+		);
+		if (!detachedWindow) {
+			window.alert("Unable to open the summary mini window. Please allow popups for this page.");
+			return;
+		}
+
+		detachedSessionSummaryWindow = detachedWindow;
+		detachedWindow.addEventListener("beforeunload", clearDetachedSummaryWindowReference, { once: true });
+	}
+
+	syncDetachedSummaryWindowContent();
+	closeSessionSummaryPage();
+	try {
+		detachedWindow.focus();
+	} catch {
+		// Ignore focus failures from restricted hosts.
+	}
+}
+
+function setSummaryPageOpen(open) {
+	isSessionSummaryPageOpen = Boolean(open);
+	if (appEl) {
+		appEl.classList.toggle("show-summary-page", isSessionSummaryPageOpen);
+	}
+	if (sessionSummaryPageEl) {
+		sessionSummaryPageEl.hidden = !isSessionSummaryPageOpen;
+	}
+	if (sessionSummaryCopyBtnEl) {
+		sessionSummaryCopyBtnEl.hidden = !isSessionSummaryPageOpen;
+	}
+	if (sessionSummaryShareBtnEl) {
+		sessionSummaryShareBtnEl.hidden = !isSessionSummaryPageOpen;
+	}
+	if (sessionSummaryClearBtnEl) {
+		sessionSummaryClearBtnEl.hidden = !isSessionSummaryPageOpen;
+	}
+	if (sessionSummaryDetachBtnEl) {
+		sessionSummaryDetachBtnEl.hidden = !isSessionSummaryPageOpen;
+	}
+	updateInputActionStates();
+}
+
+function renderSessionSummaryPage() {
+	if (!sessionSummaryPageEl || !sessionSummaryContentEl) {
+		return;
+	}
+
+	const active = getActiveSession();
+	if (!active) {
+		const detachedWindow = getDetachedSummaryWindow();
+		if (detachedWindow) {
+			try {
+				detachedWindow.close();
+			} catch {
+				clearDetachedSummaryWindowReference();
+			}
+		}
+		setSummaryPageOpen(false);
+		return;
+	}
+
+	const markdown = getSessionSummaryMarkdown(active);
+	if (!markdown) {
+		sessionSummaryContentEl.innerHTML = `<div class="session-summary-empty">No summary available for this session yet.</div>`;
+		if (sessionSummaryCopyBtnEl) {
+			sessionSummaryCopyBtnEl.disabled = true;
+		}
+		if (sessionSummaryShareBtnEl) {
+			sessionSummaryShareBtnEl.disabled = true;
+		}
+		if (sessionSummaryClearBtnEl) {
+			sessionSummaryClearBtnEl.disabled = true;
+		}
+		if (sessionSummaryDetachBtnEl) {
+			sessionSummaryDetachBtnEl.disabled = true;
+		}
+		syncDetachedSummaryWindowContent();
+		return;
+	}
+
+	const markdownRenderer = typeof window.renderAgentMarkdown === "function" ? window.renderAgentMarkdown : escapeHtml;
+	sessionSummaryContentEl.innerHTML = `<article class="session-summary-markdown markdown-body">${markdownRenderer(markdown)}</article>`;
+	if (typeof window.enhanceMarkdownContent === "function") {
+		window.enhanceMarkdownContent(sessionSummaryContentEl);
+	}
+	if (typeof window.applyMarkdownCodeHighlight === "function") {
+		window.applyMarkdownCodeHighlight(sessionSummaryContentEl);
+	}
+	if (sessionSummaryCopyBtnEl) {
+		sessionSummaryCopyBtnEl.disabled = false;
+	}
+	if (sessionSummaryShareBtnEl) {
+		sessionSummaryShareBtnEl.disabled = false;
+	}
+	if (sessionSummaryClearBtnEl) {
+		sessionSummaryClearBtnEl.disabled = false;
+	}
+	if (sessionSummaryDetachBtnEl) {
+		sessionSummaryDetachBtnEl.disabled = false;
+	}
+	syncDetachedSummaryWindowContent();
+}
+
+function openSessionSummaryPage() {
+	const active = getActiveSession();
+	if (!active) {
+		return;
+	}
+
+	renderSessionSummaryPage();
+	setSummaryPageOpen(true);
+}
+
+function closeSessionSummaryPage() {
+	setSummaryPageOpen(false);
 }
 
 function toggleFavoriteForMessageRecords(sessionId, messages) {
@@ -1596,6 +1876,10 @@ function normalizeSessionState(session) {
 	if (typeof session.isOpen !== "boolean") {
 		session.isOpen = true;
 	}
+
+	if (typeof session.summaryMarkdown !== "string") {
+		session.summaryMarkdown = "";
+	}
 }
 
 function isSessionLocked(sessionId) {
@@ -2043,6 +2327,7 @@ function renderMessages({ preserveScroll = false } = {}) {
 function renderAll({ preserveMessageScroll = false } = {}) {
 	renderSessionList();
 	renderMessages({ preserveScroll: preserveMessageScroll });
+	renderSessionSummaryPage();
 	if (typeof window.syncModelPickerForActiveSession === "function") {
 		window.syncModelPickerForActiveSession();
 	}
@@ -2063,6 +2348,30 @@ function updateInputActionStates() {
 	}
 	if (dialogHeaderSummarizeBtnEl) {
 		dialogHeaderSummarizeBtnEl.disabled = !hasActiveSession || dialogHeaderSummarizeBusy;
+	}
+	if (dialogTitleSummaryBtnEl) {
+		const active = getActiveSession();
+		const hasSummary = Boolean(active && getSessionSummaryMarkdown(active));
+		dialogTitleSummaryBtnEl.disabled = !hasActiveSession || dialogHeaderSummarizeBusy || (!hasSummary && !isSessionSummaryPageOpen);
+		dialogTitleSummaryBtnEl.setAttribute("aria-expanded", isSessionSummaryPageOpen ? "true" : "false");
+		if (dialogHeaderSummarizeBusy) {
+			dialogTitleSummaryBtnEl.title = "Summarizing in progress...";
+			dialogTitleSummaryBtnEl.setAttribute("aria-label", "Summarizing in progress...");
+		} else if (isSessionSummaryPageOpen) {
+			dialogTitleSummaryBtnEl.title = "Back to Session";
+			dialogTitleSummaryBtnEl.setAttribute("aria-label", "Back to Session");
+		} else if (!hasSummary) {
+			dialogTitleSummaryBtnEl.title = "No summary available yet";
+			dialogTitleSummaryBtnEl.setAttribute("aria-label", "No summary available yet");
+		} else {
+			dialogTitleSummaryBtnEl.title = "Open Session Summary";
+			dialogTitleSummaryBtnEl.setAttribute("aria-label", "Open Session Summary");
+		}
+	}
+	if (sessionSummaryDetachBtnEl) {
+		const active = getActiveSession();
+		const hasSummary = Boolean(active && getSessionSummaryMarkdown(active));
+		sessionSummaryDetachBtnEl.disabled = !hasActiveSession || !hasSummary;
 	}
 	if (dialogHeaderExportMenuItemEl) {
 		dialogHeaderExportMenuItemEl.disabled = !hasActiveSession;
@@ -2132,6 +2441,7 @@ function openSession(sessionId, fromListClick = false) {
 		return;
 	}
 	activeSessionId = target.id;
+	closeSessionSummaryPage();
 	resetPromptHistoryNavigation();
 	renderAll();
 	saveState();
@@ -2849,7 +3159,13 @@ if (dialogHeaderSummarizeBtnEl) {
 				summarySource,
 				modelId
 			});
-			downloadSessionSummary(active, result.reply);
+			active.summaryMarkdown = buildSessionSummaryMarkdown(result.reply, {
+				sessionName: active.name,
+				sessionId: active.id
+			});
+			saveState();
+			renderSessionSummaryPage();
+			showSummaryNoticeFeedback();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			window.alert(`Summarize failed: ${message}`);
@@ -2862,6 +3178,103 @@ if (dialogHeaderSummarizeBtnEl) {
 		}
 	});
 }
+
+if (dialogTitleSummaryBtnEl) {
+	dialogTitleSummaryBtnEl.addEventListener("click", () => {
+		if (dialogTitleSummaryBtnEl.disabled) {
+			return;
+		}
+			if (isSessionSummaryPageOpen) {
+				closeSessionSummaryPage();
+				return;
+			}
+			openSessionSummaryPage();
+	});
+}
+
+if (sessionSummaryCopyBtnEl) {
+	sessionSummaryCopyBtnEl.addEventListener("click", async () => {
+		if (sessionSummaryCopyBtnEl.disabled) {
+			return;
+		}
+
+		const active = getActiveSession();
+		const markdown = active ? getSessionSummaryMarkdown(active) : "";
+		if (!markdown) {
+			return;
+		}
+
+		try {
+			await copyTextToClipboard(markdown);
+			showSessionSummaryCopyFeedback();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			window.alert(`Copy failed: ${message}`);
+		}
+	});
+}
+
+if (sessionSummaryShareBtnEl) {
+	sessionSummaryShareBtnEl.addEventListener("click", () => {
+		if (sessionSummaryShareBtnEl.disabled) {
+			return;
+		}
+
+		const active = getActiveSession();
+		const markdown = active ? getSessionSummaryMarkdown(active) : "";
+		if (!active || !markdown) {
+			return;
+		}
+
+		exportSessionSummaryMarkdown(active, markdown);
+	});
+}
+
+if (sessionSummaryClearBtnEl) {
+	sessionSummaryClearBtnEl.addEventListener("click", () => {
+		if (sessionSummaryClearBtnEl.disabled) {
+			return;
+		}
+
+		const active = getActiveSession();
+		const markdown = active ? getSessionSummaryMarkdown(active) : "";
+		if (!active || !markdown) {
+			return;
+		}
+
+		if (!window.confirm("Clear summary for this session?")) {
+			return;
+		}
+
+		active.summaryMarkdown = "";
+		saveState();
+		renderSessionSummaryPage();
+		updateInputActionStates();
+	});
+}
+
+if (sessionSummaryDetachBtnEl) {
+	sessionSummaryDetachBtnEl.addEventListener("click", () => {
+		if (sessionSummaryDetachBtnEl.disabled) {
+			return;
+		}
+
+		openDetachedSessionSummaryWindow();
+	});
+}
+
+window.addEventListener("beforeunload", () => {
+	const detachedWindow = getDetachedSummaryWindow();
+	if (!detachedWindow) {
+		return;
+	}
+
+	try {
+		detachedWindow.close();
+	} catch {
+		// Ignore close failures during teardown.
+	}
+});
 
 
 // Dialog header menu logic

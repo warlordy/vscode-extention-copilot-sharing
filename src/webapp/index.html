@@ -81,9 +81,28 @@
 
 			<header class="dialog-header">
 				<div class="dialog-title">
-					<button class="mobile-back" id="mobileBackBtn" aria-label="Back To Sessions">← Back</button>
+					<button class="mobile-back" id="mobileBackBtn" aria-label="Back To Sessions" title="Back to Session">
+						<img src="./icons/arrow-circle-left.svg" alt="Back" class="mobile-back-icon" aria-hidden="true" />
+					</button>
 					<div class="dialog-title-meta">
-						<div class="dialog-title-text" id="dialogTitle">Select a session</div>
+						<div class="dialog-title-row">
+							<div class="dialog-title-text" id="dialogTitle">Select a session</div>
+							<button class="dialog-title-summary-btn" id="dialogTitleSummaryBtn" type="button" aria-label="Open Session Summary" title="Open Session Summary">
+								<span class="dialog-title-summary-icon" aria-hidden="true"></span>
+							</button>
+							<button class="session-summary-copy-btn" id="sessionSummaryCopyBtn" type="button" aria-label="Copy Summary" title="Copy Summary" hidden>
+								<span class="session-summary-copy-icon" aria-hidden="true"></span>
+							</button>
+							<button class="session-summary-share-btn" id="sessionSummaryShareBtn" type="button" aria-label="Share Summary" title="Share Summary" hidden>
+								<span class="session-summary-share-icon" aria-hidden="true"></span>
+							</button>
+							<button class="session-summary-clear-btn" id="sessionSummaryClearBtn" type="button" aria-label="Clear Summary" title="Clear Summary" hidden>
+								<span class="session-summary-clear-icon" aria-hidden="true"></span>
+							</button>
+							<button class="session-summary-detach-btn" id="sessionSummaryDetachBtn" type="button" aria-label="Open Summary in Mini Window" title="Open Summary in Mini Window" hidden>
+								<span class="session-summary-detach-icon" aria-hidden="true"></span>
+							</button>
+						</div>
 						<div class="dialog-title-status" id="messageSelectionStatus" aria-live="polite" hidden></div>
 					</div>
 				</div>
@@ -145,6 +164,12 @@
 
 			<section class="messages" id="messages">
 				<div class="empty">Create or select a session to start your dialog</div>
+			</section>
+
+			<section class="session-summary-page" id="sessionSummaryPage" hidden>
+				<div class="session-summary-page-body" id="sessionSummaryContent">
+					<div class="session-summary-empty">No summary available for this session yet.</div>
+				</div>
 			</section>
 
 			<footer class="input-area">

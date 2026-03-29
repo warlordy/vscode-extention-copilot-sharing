@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Session Summary</title>
+	<link rel="stylesheet" href="./styles.css" />
+	<link
+		rel="stylesheet"
+		href="./vendor/github-markdown.css"
+		onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/github-markdown-css@5.8.1/github-markdown.min.css';"
+	/>
+	<link
+		rel="stylesheet"
+		href="./vendor/highlight.github-dark.min.css"
+		onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/highlight.js@11.10.0/styles/github-dark.min.css';"
+	/>
+	<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+			height: 100%;
+			background: #f4f7fb;
+			color: #1f2329;
+			font-family: "Segoe UI", system-ui, sans-serif;
+		}
+
+		body {
+			overflow: hidden;
+		}
+
+		.summary-mini-shell {
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			padding: 10px;
+			box-sizing: border-box;
+		}
+
+		.summary-mini-content {
+			flex: 1;
+			min-height: 0;
+			overflow: auto;
+			padding: 12px;
+			border-radius: 12px;
+			background: #fff;
+			border: 1px solid #dbe3ea;
+			box-shadow: 0 3px 14px rgba(15, 23, 42, 0.08);
+		}
+
+		.summary-mini-content .markdown-body {
+			max-width: none;
+			margin: 0;
+		}
+
+		.summary-mini-content .session-summary-markdown {
+			font-size: 13px;
+			line-height: 1.45;
+		}
+	</style>
+</head>
+<body>
+	<div class="summary-mini-shell">
+		<div class="session-summary-page-body summary-mini-content" id="summaryMiniContent">
+			<div class="session-summary-empty">No summary available for this session yet.</div>
+		</div>
+	</div>
+	<script src="./summary-mini.js"></script>
+</body>
+</html>
