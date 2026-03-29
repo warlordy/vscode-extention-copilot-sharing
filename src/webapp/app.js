@@ -458,6 +458,7 @@ let sessions = [];
 let activeSessionId = null;
 let typingSessionId = null;
 let typingTimeoutId = null;
+let dialogHeaderCopyFeedbackTimeoutId = null;
 let promptHistorySessionId = null;
 let promptHistoryIndex = -1;
 let promptHistoryDraft = "";
@@ -482,6 +483,7 @@ const exportAllSessionBtnEl = document.getElementById("exportAllSessionBtn");
 const shareAllSessionRawBtnEl = document.getElementById("shareAllSessionRawBtn");
 const clearSessionHistoryBtnEl = document.getElementById("clearSessionHistoryBtn");
 const resetContextBtnEl = document.getElementById("resetContextBtn");
+const dialogHeaderCopyBtnEl = document.getElementById("dialogHeaderCopyBtn");
 const dialogHeaderShareBtnEl = document.getElementById("dialogHeaderShareBtn");
 const dialogHeaderExportMenuItemEl = document.getElementById("dialogHeaderExportMenuItem");
 const dialogHeaderMenuBtnEl = document.getElementById("dialogHeaderMenuBtn");
@@ -821,6 +823,25 @@ async function copyMessageRecords(messages) {
 	}
 
 	await copyTextToClipboard(markdown);
+}
+
+function showDialogHeaderCopyFeedback() {
+	if (!dialogHeaderCopyBtnEl) {
+		return;
+	}
+
+	dialogHeaderCopyBtnEl.classList.remove("is-copied");
+	void dialogHeaderCopyBtnEl.offsetWidth;
+	dialogHeaderCopyBtnEl.classList.add("is-copied");
+
+	if (dialogHeaderCopyFeedbackTimeoutId) {
+		window.clearTimeout(dialogHeaderCopyFeedbackTimeoutId);
+	}
+
+	dialogHeaderCopyFeedbackTimeoutId = window.setTimeout(() => {
+		dialogHeaderCopyBtnEl?.classList.remove("is-copied");
+		dialogHeaderCopyFeedbackTimeoutId = null;
+	}, 1200);
 }
 
 function exportMessageRecords(sessionId, messages) {
@@ -1993,6 +2014,9 @@ function updateInputActionStates() {
 	const hasInFlightStream = hasActiveSession
 		&& typeof window.isSessionStreamInFlight === "function"
 		&& window.isSessionStreamInFlight(activeSessionId);
+	if (dialogHeaderCopyBtnEl) {
+		dialogHeaderCopyBtnEl.disabled = !hasActiveSession;
+	}
 	if (dialogHeaderShareBtnEl) {
 		dialogHeaderShareBtnEl.disabled = !hasActiveSession;
 	}
@@ -2711,6 +2735,25 @@ document.addEventListener("click", async (event) => {
 });
 
 sendBtnEl.addEventListener("click", handlePrimaryActionClick);
+
+if (dialogHeaderCopyBtnEl) {
+	dialogHeaderCopyBtnEl.addEventListener("click", async () => {
+		if (dialogHeaderCopyBtnEl.disabled) {
+			return;
+		}
+		const active = getActiveSession();
+		if (!active || !Array.isArray(active.messages) || !active.messages.length) {
+			return;
+		}
+		try {
+			await copyMessageRecords(active.messages);
+			showDialogHeaderCopyFeedback();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			window.alert(`Copy failed: ${message}`);
+		}
+	});
+}
 
 if (dialogHeaderShareBtnEl) {
 	dialogHeaderShareBtnEl.addEventListener("click", () => {

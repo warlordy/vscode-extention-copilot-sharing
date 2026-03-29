@@ -9,6 +9,7 @@
 }
 /* Search button in dialog header */
 .dialog-header-search-btn,
+.dialog-header-copy-btn,
 .dialog-header-share-btn {
 	width: 28px;
 	height: 28px;
@@ -28,6 +29,10 @@
 	display: none !important;
 }
 
+.dialog-header-copy-btn[hidden] {
+	display: none !important;
+}
+
 .dialog-header-share-btn[hidden] {
 	display: none !important;
 }
@@ -42,11 +47,13 @@
 }
 
 .dialog-header-search-btn:hover,
+.dialog-header-copy-btn:hover,
 .dialog-header-share-btn:hover {
 	background: #f3f5f9;
 	border-color: #c2c8d0;
 }
 
+.dialog-header-copy-btn:disabled,
 .dialog-header-share-btn:disabled {
 	background: #f5f7fa;
 	border-color: #dde3ea;
@@ -55,6 +62,7 @@
 }
 
 .dialog-header-search-btn:focus-visible,
+.dialog-header-copy-btn:focus-visible,
 .dialog-header-share-btn:focus-visible {
 	outline: none;
 	border-color: #9ed7b8;
@@ -79,6 +87,21 @@
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
+}
+
+.dialog-header-copy-icon {
+	width: 16px;
+	height: 16px;
+	display: inline-block;
+	background-image: url("./icons/copy.svg");
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 16px 16px;
+	transition: background-image 0s linear;
+}
+
+.dialog-header-copy-btn.is-copied .dialog-header-copy-icon {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%2308a045' d='M6.62 11.2 3.82 8.4a1 1 0 1 0-1.42 1.4l3.52 3.53a1 1 0 0 0 1.42 0l6.26-6.25a1 1 0 0 0-1.42-1.42L6.62 11.2Z'/%3E%3C/svg%3E");
 }
 
 .dialog-header-search-bar {
