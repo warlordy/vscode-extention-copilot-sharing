@@ -1060,7 +1060,7 @@ function openDetachedSessionSummaryWindow() {
 		const height = 520;
 		const left = Math.max(0, Math.round(window.screenX + Math.max(24, (window.outerWidth - width) / 2)));
 		const top = Math.max(0, Math.round(window.screenY + Math.max(24, (window.outerHeight - height) / 2)));
-		const summaryMiniUrl = new URL("./summary-mini.html", window.location.href).href;
+		const summaryMiniUrl = new URL("./summary/summary-mini.html", window.location.href).href;
 		detachedWindow = window.open(
 			summaryMiniUrl,
 			"copilotShareSessionSummaryMini",

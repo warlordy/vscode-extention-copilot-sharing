@@ -117,7 +117,7 @@
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/search.svg");
+	background-image: url("../icons/search.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
@@ -127,7 +127,7 @@
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/share.svg");
+	background-image: url("../icons/share.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
@@ -137,7 +137,7 @@
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/copy.svg");
+	background-image: url("../icons/copy.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
@@ -150,7 +150,7 @@
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/rocket.svg");
+	background-image: url("../icons/rocket.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
@@ -161,21 +161,21 @@
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/screen-full.svg");
+	background-image: url("../icons/screen-full.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
 }
 
 .dialog-header-fullscreen-btn.is-fullscreen .dialog-header-fullscreen-icon {
-	background-image: url("./icons/screen-normal.svg");
+	background-image: url("../icons/screen-normal.svg");
 }
 
 .dialog-title-summary-icon {
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/agent.svg");
+	background-image: url("../icons/agent.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
@@ -210,20 +210,20 @@
 }
 
 .session-summary-copy-icon {
-	background-image: url("./icons/copy.svg");
+	background-image: url("../icons/copy.svg");
 	transition: background-image 0s linear;
 }
 
 .session-summary-share-icon {
-	background-image: url("./icons/share.svg");
+	background-image: url("../icons/share.svg");
 }
 
 .session-summary-clear-icon {
-	background-image: url("./icons/eraser.svg");
+	background-image: url("../icons/eraser.svg");
 }
 
 .session-summary-detach-icon {
-	background-image: url("./icons/open-in-window.svg");
+	background-image: url("../icons/open-in-window.svg");
 }
 
 .session-summary-copy-btn.is-copied .session-summary-copy-icon {
@@ -405,7 +405,7 @@
 	padding: 0 2px 0 18px;
 	border: none;
 	background: transparent;
-	background-image: url("./icons/search.svg");
+	background-image: url("../icons/search.svg");
 	background-repeat: no-repeat;
 	background-position: left center;
 	background-size: 12px 12px;
@@ -432,7 +432,7 @@
 }
 
 .copilot-share-menu-item-icon.icon-clear-all {
-	background-image: url("./icons/clear-all.svg");
+	background-image: url("../icons/clear-all.svg");
 }
 
 .copilot-share-menu-separator {
@@ -882,7 +882,7 @@ body {
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/new-session.svg");
+	background-image: url("../icons/new-session.svg");
 	background-repeat: no-repeat;
 	background-size: 16px 16px;
 	background-position: center;
@@ -892,7 +892,7 @@ body {
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/sign-in.svg");
+	background-image: url("../icons/sign-in.svg");
 	background-repeat: no-repeat;
 	background-size: 16px 16px;
 	background-position: center;
@@ -955,14 +955,14 @@ body {
 	width: 16px;
 	height: 16px;
 	display: inline-block;
-	background-image: url("./icons/settings.svg");
+	background-image: url("../icons/settings.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 16px 16px;
 }
 
 .dialog-header-actions .copilot-share-menu-dots {
-	background-image: url("./icons/tools.svg");
+	background-image: url("../icons/tools.svg");
 }
 
 .copilot-share-menu-popup {
@@ -1005,27 +1005,27 @@ body {
 }
 
 .copilot-share-menu-item-icon.icon-copy {
-	background-image: url("./icons/copy.svg");
+	background-image: url("../icons/copy.svg");
 }
 
 .copilot-share-menu-item-icon.icon-globe {
-	background-image: url("./icons/globe.svg");
+	background-image: url("../icons/globe.svg");
 }
 
 .copilot-share-menu-item-icon.icon-export-all {
-	background-image: url("./icons/sign-out.svg");
+	background-image: url("../icons/sign-out.svg");
 }
 
 .copilot-share-menu-item-icon.icon-export-session {
-	background-image: url("./icons/sign-out.svg");
+	background-image: url("../icons/sign-out.svg");
 }
 
 .copilot-share-menu-item-icon.icon-share-session-list {
-	background-image: url("./icons/share.svg");
+	background-image: url("../icons/share.svg");
 }
 
 .copilot-share-menu-item-icon.icon-reset {
-	background-image: url("./icons/eraser.svg");
+	background-image: url("../icons/eraser.svg");
 }
 
 .copilot-share-menu-item-text {
@@ -2371,3 +2371,4 @@ body {
 .search-highlight-current {
 	background: #ffb703;
 }
+
