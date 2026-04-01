@@ -1076,7 +1076,6 @@ function openDetachedSessionSummaryWindow() {
 	}
 
 	syncDetachedSummaryWindowContent();
-	closeSessionSummaryPage();
 	try {
 		detachedWindow.focus();
 	} catch {
