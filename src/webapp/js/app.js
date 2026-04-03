@@ -1108,6 +1108,7 @@ const sessionSummaryShareBtnEl = document.getElementById("sessionSummaryShareBtn
 const sessionSummaryClearBtnEl = document.getElementById("sessionSummaryClearBtn");
 const sessionSummaryDetachBtnEl = document.getElementById("sessionSummaryDetachBtn");
 const promptInputEl = document.getElementById("promptInput");
+const promptSuggestionPopupEl = document.getElementById("promptSuggestionPopup");
 const modelSelectEl = document.getElementById("modelSelect");
 const importSessionBtnEl = document.getElementById("importSessionBtn");
 const exportAllSessionBtnEl = document.getElementById("exportAllSessionBtn");
@@ -1134,6 +1135,8 @@ let sessionHoverPopupEl = null;
 let messageContextMenuEl = null;
 let activeMessageContextId = null;
 let isMessageMultiSelectMode = false;
+let promptSuggestions = [];
+let activePromptSuggestionIndex = -1;
 const selectedMessageKeys = new Set();
 
 const MESSAGE_CONTEXT_MENU_ITEMS = [
@@ -2587,6 +2590,374 @@ function getUserPromptHistory(sessionId) {
 		.map((message) => String(message.text));
 }
 
+function normalizeSimilarityText(value) {
+	return String(value || "")
+		.normalize("NFKC")
+		.toLocaleLowerCase()
+		.replace(/\s+/gu, " ")
+		.trim();
+}
+
+const similarityWordSegmenter = typeof Intl !== "undefined" && typeof Intl.Segmenter === "function"
+	? new Intl.Segmenter(undefined, { granularity: "word" })
+	: null;
+const similarityChineseWordSegmenter = typeof Intl !== "undefined" && typeof Intl.Segmenter === "function"
+	? new Intl.Segmenter("zh", { granularity: "word" })
+	: null;
+const SIMILARITY_CHINESE_STOP_TOKENS = new Set([
+	"的", "了", "呢", "吗", "啊", "吧", "呀", "是", "就", "都", "又", "还", "很", "太", "也", "再", "在", "把", "被", "给",
+	"着", "地", "得", "和", "与", "及", "或", "并", "而", "但", "让", "向", "按", "将", "个", "这", "那", "每", "各",
+	"一个", "这个", "那个", "一种", "一些", "已经", "如果", "因为", "所以", "然后"
+]);
+
+function hasCjkCharacter(value) {
+	return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(String(value || ""));
+}
+
+function hasHanCharacter(value) {
+	return /\p{Script=Han}/u.test(String(value || ""));
+}
+
+function splitSimilaritySegments(value) {
+	return String(value || "").match(/[\p{Script=Han}]+|[\p{L}\p{N}\p{M}_]+/gu) || [];
+}
+
+function getSimilaritySegmenter(value) {
+	if (hasHanCharacter(value) && similarityChineseWordSegmenter) {
+		return similarityChineseWordSegmenter;
+	}
+
+	return similarityWordSegmenter;
+}
+
+function expandSimilarityToken(token) {
+	const normalized = normalizeSimilarityText(token);
+	if (!normalized) {
+		return [];
+	}
+
+	if (!hasHanCharacter(normalized)) {
+		return [normalized];
+	}
+
+	const chars = Array.from(normalized);
+	const expanded = new Set([normalized]);
+	const maxGramSize = Math.min(chars.length, 3);
+	for (let size = 2; size <= maxGramSize; size += 1) {
+		for (let index = 0; index <= chars.length - size; index += 1) {
+			expanded.add(chars.slice(index, index + size).join(""));
+		}
+	}
+
+	return Array.from(expanded);
+}
+
+function shouldKeepSimilarityToken(token) {
+	const normalized = normalizeSimilarityText(token);
+	if (!normalized) {
+		return false;
+	}
+
+	if (SIMILARITY_CHINESE_STOP_TOKENS.has(normalized)) {
+		return false;
+	}
+
+	if (hasHanCharacter(normalized)) {
+		return true;
+	}
+
+	return normalized.length > 1;
+}
+
+function tokenizeForSimilarity(value) {
+	const normalized = normalizeSimilarityText(value);
+	if (!normalized) {
+		return [];
+	}
+
+	const tokens = [];
+	const segmenter = getSimilaritySegmenter(normalized);
+	if (segmenter) {
+		for (const part of segmenter.segment(normalized)) {
+			const rawSegment = normalizeSimilarityText(part.segment);
+			if (!rawSegment) {
+				continue;
+			}
+
+			const segments = splitSimilaritySegments(rawSegment);
+			segments.forEach((segment) => {
+				const isWordLike = part.isWordLike === true;
+				const shouldTreatAsWord = isWordLike || /[\p{L}\p{N}\p{M}_]/u.test(segment) || hasHanCharacter(segment);
+				if (!shouldTreatAsWord) {
+					return;
+				}
+
+				tokens.push(...expandSimilarityToken(segment));
+			});
+		}
+	} else {
+		const matches = splitSimilaritySegments(normalized);
+		matches.forEach((match) => {
+			tokens.push(...expandSimilarityToken(match));
+		});
+	}
+
+	return Array.from(new Set(tokens.filter(shouldKeepSimilarityToken)));
+}
+
+function getCharacterBigrams(value) {
+	const text = normalizeSimilarityText(value);
+	const chars = Array.from(text);
+	if (chars.length < 2) {
+		return new Set(chars.length ? [text] : []);
+	}
+
+	const grams = new Set();
+	for (let index = 0; index < chars.length - 1; index += 1) {
+		grams.add(`${chars[index]}${chars[index + 1]}`);
+	}
+	return grams;
+}
+
+function calculatePromptSimilarity(query, candidate) {
+	const queryText = normalizeSimilarityText(query);
+	const candidateText = normalizeSimilarityText(candidate);
+	if (!queryText || !candidateText) {
+		return 0;
+	}
+
+	let score = 0;
+	// Direct containment is the strongest signal for prompt reuse, so it gets a fixed boost
+	// plus a small length-sensitive bonus when the query covers a large part of the candidate.
+	if (candidateText.includes(queryText)) {
+		const lengthBoost = Math.min(queryText.length / Math.max(candidateText.length, 1), 0.45);
+		score += 0.45 + lengthBoost;
+	}
+
+	const queryTokens = new Set(tokenizeForSimilarity(queryText));
+	const candidateTokens = new Set(tokenizeForSimilarity(candidateText));
+	if (queryTokens.size && candidateTokens.size) {
+		let overlap = 0;
+		queryTokens.forEach((token) => {
+			if (candidateTokens.has(token)) {
+				overlap += 1;
+			}
+		});
+
+		// Token overlap works like a weighted Jaccard score on normalized word sets,
+		// which helps capture semantic similarity even when wording order changes.
+		const union = new Set([...queryTokens, ...candidateTokens]).size;
+		if (union) {
+			score += (overlap / union) * 0.9;
+		}
+	}
+
+	const queryBigrams = getCharacterBigrams(queryText);
+	const candidateBigrams = getCharacterBigrams(candidateText);
+	if (queryBigrams.size && candidateBigrams.size) {
+		let overlap = 0;
+		queryBigrams.forEach((gram) => {
+			if (candidateBigrams.has(gram)) {
+				overlap += 1;
+			}
+		});
+
+		// Character bigrams add fuzzy matching for small edits, typos, and partial phrasing.
+		const dice = (2 * overlap) / (queryBigrams.size + candidateBigrams.size);
+		score += dice * 0.55;
+	}
+
+	return score;
+}
+
+const MIN_PROMPT_SIMILARITY_SCORE = 0.22;
+
+function isWeakPromptMatch(query, candidate) {
+	const queryText = normalizeSimilarityText(query);
+	const candidateText = normalizeSimilarityText(candidate);
+	if (!queryText || !candidateText) {
+		return true;
+	}
+
+	// Allow direct substring matches immediately even if the overall score is modest.
+	if (candidateText.includes(queryText)) {
+		return false;
+	}
+
+	const queryTokens = new Set(tokenizeForSimilarity(queryText));
+	const candidateTokens = new Set(tokenizeForSimilarity(candidateText));
+	let tokenOverlap = 0;
+	queryTokens.forEach((token) => {
+		if (candidateTokens.has(token)) {
+			tokenOverlap += 1;
+		}
+	});
+
+	if (tokenOverlap > 0) {
+		return false;
+	}
+
+	const queryBigrams = getCharacterBigrams(queryText);
+	const candidateBigrams = getCharacterBigrams(candidateText);
+	if (!queryBigrams.size || !candidateBigrams.size) {
+		return true;
+	}
+
+	let bigramOverlap = 0;
+	queryBigrams.forEach((gram) => {
+		if (candidateBigrams.has(gram)) {
+			bigramOverlap += 1;
+		}
+	});
+
+	const dice = (2 * bigramOverlap) / (queryBigrams.size + candidateBigrams.size);
+	// If there is no substring match and no shared tokens, require a minimum amount of
+	// character-level overlap so accidental top-5 results do not appear in the popup.
+	return dice < 0.16;
+}
+
+function findTopSimilarHistoricalPrompts(query, limit = 5) {
+	const trimmedQuery = String(query || "").trim();
+	if (!trimmedQuery) {
+		return [];
+	}
+
+	const dedupedByText = new Map();
+	sessions.forEach((session) => {
+		if (!session || !Array.isArray(session.messages)) {
+			return;
+		}
+
+		session.messages.forEach((message) => {
+			if (!message || message.role !== "user") {
+				return;
+			}
+
+			const text = String(message.text || "").trim();
+			if (!text) {
+				return;
+			}
+
+			const key = normalizeSimilarityText(text);
+			const score = calculatePromptSimilarity(trimmedQuery, text);
+				// The popup should prefer fewer high-quality suggestions over filling five slots
+				// with weakly related history entries.
+			if (score < MIN_PROMPT_SIMILARITY_SCORE || isWeakPromptMatch(trimmedQuery, text)) {
+				return;
+			}
+
+			const previous = dedupedByText.get(key);
+			if (!previous || score > previous.score || (score === previous.score && (message.timestamp || 0) > (previous.timestamp || 0))) {
+				dedupedByText.set(key, {
+					sessionId: session.id,
+					sessionName: session.name,
+					messageId: message.id,
+					text,
+					timestamp: message.timestamp || 0,
+					score
+				});
+			}
+		});
+	});
+
+	return Array.from(dedupedByText.values())
+		.sort((a, b) => {
+			if (b.score !== a.score) {
+				return b.score - a.score;
+			}
+			return (b.timestamp || 0) - (a.timestamp || 0);
+		})
+		.slice(0, Math.max(1, limit));
+}
+
+function hidePromptSuggestionPopup() {
+	promptSuggestions = [];
+	activePromptSuggestionIndex = -1;
+	if (promptSuggestionPopupEl) {
+		promptSuggestionPopupEl.hidden = true;
+		promptSuggestionPopupEl.innerHTML = "";
+	}
+}
+
+function applyPromptSuggestion(index) {
+	if (!promptInputEl || !promptSuggestions.length) {
+		return;
+	}
+
+	const suggestion = promptSuggestions[index];
+	if (!suggestion) {
+		return;
+	}
+
+	promptInputEl.value = suggestion.text;
+	promptInputEl.setSelectionRange(promptInputEl.value.length, promptInputEl.value.length);
+	promptInputEl.focus();
+	if (promptHistoryIndex !== -1) {
+		promptHistoryIndex = -1;
+		promptHistoryDraft = promptInputEl.value;
+	}
+	hidePromptSuggestionPopup();
+	updateInputActionStates();
+}
+
+function moveActivePromptSuggestion(direction) {
+	if (!promptSuggestions.length || !promptSuggestionPopupEl) {
+		return false;
+	}
+
+	const nextIndex = activePromptSuggestionIndex < 0
+		? (direction > 0 ? 0 : promptSuggestions.length - 1)
+		: (activePromptSuggestionIndex + direction + promptSuggestions.length) % promptSuggestions.length;
+	activePromptSuggestionIndex = nextIndex;
+
+	const optionEls = promptSuggestionPopupEl.querySelectorAll(".prompt-suggestion-item");
+	optionEls.forEach((optionEl, optionIndex) => {
+		const isActive = optionIndex === activePromptSuggestionIndex;
+		optionEl.classList.toggle("is-active", isActive);
+		optionEl.setAttribute("aria-selected", isActive ? "true" : "false");
+		if (isActive) {
+			optionEl.scrollIntoView({ block: "nearest" });
+		}
+	});
+
+	return true;
+}
+
+function renderPromptSuggestions(query) {
+	if (!promptSuggestionPopupEl || !promptInputEl) {
+		return;
+	}
+
+	const trimmedQuery = String(query || "").trim();
+	if (!trimmedQuery) {
+		hidePromptSuggestionPopup();
+		return;
+	}
+
+	promptSuggestions = findTopSimilarHistoricalPrompts(trimmedQuery, 5);
+	activePromptSuggestionIndex = -1;
+	if (!promptSuggestions.length) {
+		hidePromptSuggestionPopup();
+		return;
+	}
+
+	promptSuggestionPopupEl.innerHTML = promptSuggestions
+		.map((suggestion, index) => {
+			const safeText = escapeHtml(suggestion.text);
+			const sessionLabel = escapeHtml(String(suggestion.sessionName || "Session"));
+			const timeLabel = formatDateTime(suggestion.timestamp || Date.now());
+			const safeTime = escapeHtml(timeLabel);
+			return `
+				<button class="prompt-suggestion-item" type="button" role="option" aria-selected="false" data-index="${index}">
+					<span class="prompt-suggestion-text">${safeText}</span>
+					<span class="prompt-suggestion-meta">${sessionLabel} · ${safeTime}</span>
+				</button>
+			`;
+		})
+		.join("");
+	promptSuggestionPopupEl.hidden = false;
+}
+
 function navigatePromptHistoryByWheel(direction) {
 	const active = getActiveSession();
 	if (!active) {
@@ -3212,6 +3583,7 @@ function sendUserMessage() {
 	addMessageToActiveSession("user", text);
 	showTypingIndicator(activeSessionId);
 	promptInputEl.value = "";
+	hidePromptSuggestionPopup();
 	resetPromptHistoryNavigation();
 	renderAll();
 	saveState();
@@ -4134,8 +4506,32 @@ promptInputEl.addEventListener("keydown", (event) => {
 		}
 	}
 
+	if (!event.altKey && !event.ctrlKey && !event.metaKey) {
+		if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+			const direction = event.key === "ArrowDown" ? 1 : -1;
+			const handled = moveActivePromptSuggestion(direction);
+			if (handled) {
+				event.preventDefault();
+				return;
+			}
+		}
+
+		if (event.key === "Escape" && promptSuggestions.length) {
+			hidePromptSuggestionPopup();
+			event.preventDefault();
+			return;
+		}
+
+		if (event.key === "Enter" && !event.shiftKey && promptSuggestions.length && activePromptSuggestionIndex >= 0) {
+			event.preventDefault();
+			applyPromptSuggestion(activePromptSuggestionIndex);
+			return;
+		}
+	}
+
 	if (event.key === "Enter" && !event.shiftKey) {
 		event.preventDefault();
+		hidePromptSuggestionPopup();
 		handlePrimaryActionClick();
 	}
 });
@@ -4145,6 +4541,7 @@ promptInputEl.addEventListener("input", () => {
 		promptHistoryIndex = -1;
 		promptHistoryDraft = promptInputEl.value;
 	}
+	renderPromptSuggestions(promptInputEl.value);
 	updateInputActionStates();
 });
 
@@ -4169,6 +4566,37 @@ if (inputHintMenuEl) {
 		closeInputHintMenuIfNeeded(event.target);
 	});
 }
+
+if (promptSuggestionPopupEl) {
+	promptSuggestionPopupEl.addEventListener("click", (event) => {
+		const target = event.target;
+		if (!(target instanceof HTMLElement)) {
+			return;
+		}
+
+		const button = target.closest(".prompt-suggestion-item");
+		if (!(button instanceof HTMLButtonElement)) {
+			return;
+		}
+
+		const index = Number(button.dataset.index);
+		if (Number.isFinite(index)) {
+			applyPromptSuggestion(index);
+		}
+	});
+}
+
+document.addEventListener("click", (event) => {
+	const target = event.target;
+	if (!(target instanceof Element)) {
+		return;
+	}
+
+	const insidePromptArea = target.closest("#promptInput") || target.closest("#promptSuggestionPopup");
+	if (!insidePromptArea) {
+		hidePromptSuggestionPopup();
+	}
+});
 
 mobileBackBtnEl.addEventListener("click", () => {
 	appEl.classList.remove("show-dialog");
