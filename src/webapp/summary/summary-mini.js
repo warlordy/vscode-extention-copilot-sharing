@@ -11,7 +11,7 @@
 			: "Session";
 		const contentHtml = snapshot && typeof snapshot.contentHtml === "string"
 			? snapshot.contentHtml
-			: '<div class="session-summary-empty">No summary available for this session yet.</div>';
+			: '<div class="session-summary-empty">No summary is available for this session yet.<br>Press the Summarize button (<span class="session-summary-empty-icon" aria-hidden="true"></span>) to generate one.</div>';
 
 		document.title = `${sessionName} Summary`;
 		contentEl.innerHTML = contentHtml;

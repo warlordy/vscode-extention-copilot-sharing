@@ -1627,12 +1627,16 @@ function buildDetachedSummarySnapshot() {
 	const sessionName = active?.name ? String(active.name) : "Session";
 	const contentHtml = sessionSummaryContentEl
 		? sessionSummaryContentEl.innerHTML
-		: '<div class="session-summary-empty">No summary available for this session yet.</div>';
+		: getNoSummaryHintHtml();
 
 	return {
 		sessionName,
 		contentHtml
 	};
+}
+
+function getNoSummaryHintHtml() {
+	return '<div class="session-summary-empty">No summary is available for this session yet.<br>Press the Summarize button (<span class="session-summary-empty-icon" aria-hidden="true"></span>) to generate one.</div>';
 }
 
 window.getDetachedSummarySnapshot = function getDetachedSummarySnapshot() {
@@ -1669,8 +1673,7 @@ function syncDetachedSummaryWindowContent() {
 
 function openDetachedSessionSummaryWindow() {
 	const active = getActiveSession();
-	const markdown = active ? getSessionSummaryMarkdown(active) : "";
-	if (!active || !markdown) {
+	if (!active) {
 		return;
 	}
 
@@ -1725,6 +1728,9 @@ function setSummaryPageOpen(open) {
 	if (sessionSummaryDetachBtnEl) {
 		sessionSummaryDetachBtnEl.hidden = !isSessionSummaryPageOpen;
 	}
+	if (dialogHeaderSummarizeBtnEl) {
+		dialogHeaderSummarizeBtnEl.hidden = !isSessionSummaryPageOpen;
+	}
 	updateInputActionStates();
 }
 
@@ -1749,7 +1755,7 @@ function renderSessionSummaryPage() {
 
 	const markdown = getSessionSummaryMarkdown(active);
 	if (!markdown) {
-		sessionSummaryContentEl.innerHTML = `<div class="session-summary-empty">No summary available for this session yet.</div>`;
+		sessionSummaryContentEl.innerHTML = getNoSummaryHintHtml();
 		if (sessionSummaryCopyBtnEl) {
 			sessionSummaryCopyBtnEl.disabled = true;
 		}
@@ -1760,7 +1766,7 @@ function renderSessionSummaryPage() {
 			sessionSummaryClearBtnEl.disabled = true;
 		}
 		if (sessionSummaryDetachBtnEl) {
-			sessionSummaryDetachBtnEl.disabled = true;
+			sessionSummaryDetachBtnEl.disabled = false;
 		}
 		syncDetachedSummaryWindowContent();
 		return;
@@ -3352,7 +3358,7 @@ function updateInputActionStates() {
 	if (dialogTitleSummaryBtnEl) {
 		const active = getActiveSession();
 		const hasSummary = Boolean(active && getSessionSummaryMarkdown(active));
-		dialogTitleSummaryBtnEl.disabled = !hasActiveSession || dialogHeaderSummarizeBusy || (!hasSummary && !isSessionSummaryPageOpen);
+		dialogTitleSummaryBtnEl.disabled = !hasActiveSession || dialogHeaderSummarizeBusy;
 		dialogTitleSummaryBtnEl.setAttribute("aria-expanded", isSessionSummaryPageOpen ? "true" : "false");
 		if (dialogHeaderSummarizeBusy) {
 			dialogTitleSummaryBtnEl.title = "Summarizing in progress...";
@@ -3361,17 +3367,15 @@ function updateInputActionStates() {
 			dialogTitleSummaryBtnEl.title = "Back to Session";
 			dialogTitleSummaryBtnEl.setAttribute("aria-label", "Back to Session");
 		} else if (!hasSummary) {
-			dialogTitleSummaryBtnEl.title = "No summary available yet";
-			dialogTitleSummaryBtnEl.setAttribute("aria-label", "No summary available yet");
+			dialogTitleSummaryBtnEl.title = "Open Session Summary";
+			dialogTitleSummaryBtnEl.setAttribute("aria-label", "Open Session Summary");
 		} else {
 			dialogTitleSummaryBtnEl.title = "Open Session Summary";
 			dialogTitleSummaryBtnEl.setAttribute("aria-label", "Open Session Summary");
 		}
 	}
 	if (sessionSummaryDetachBtnEl) {
-		const active = getActiveSession();
-		const hasSummary = Boolean(active && getSessionSummaryMarkdown(active));
-		sessionSummaryDetachBtnEl.disabled = !hasActiveSession || !hasSummary;
+		sessionSummaryDetachBtnEl.disabled = !hasActiveSession;
 	}
 	if (dialogHeaderExportMenuItemEl) {
 		dialogHeaderExportMenuItemEl.disabled = !hasActiveSession;

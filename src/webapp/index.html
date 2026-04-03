@@ -107,6 +107,12 @@
 							<button class="dialog-title-summary-btn" id="dialogTitleSummaryBtn" type="button" aria-label="Open Session Summary" title="Open Session Summary">
 								<span class="dialog-title-summary-icon" aria-hidden="true"></span>
 							</button>
+							<button class="dialog-header-summarize-btn" id="dialogHeaderSummarizeBtn" type="button" aria-label="Summarize Session Messages" title="Summarize Session Messages" hidden>
+								<span class="dialog-header-summarize-icon" aria-hidden="true"></span>
+							</button>
+							<button class="session-summary-detach-btn" id="sessionSummaryDetachBtn" type="button" aria-label="Open Summary in Mini Window" title="Open Summary in Mini Window" hidden>
+								<span class="session-summary-detach-icon" aria-hidden="true"></span>
+							</button>
 							<button class="session-summary-copy-btn" id="sessionSummaryCopyBtn" type="button" aria-label="Copy Summary" title="Copy Summary" hidden>
 								<span class="session-summary-copy-icon" aria-hidden="true"></span>
 							</button>
@@ -115,9 +121,6 @@
 							</button>
 							<button class="session-summary-clear-btn" id="sessionSummaryClearBtn" type="button" aria-label="Clear Summary" title="Clear Summary" hidden>
 								<span class="session-summary-clear-icon" aria-hidden="true"></span>
-							</button>
-							<button class="session-summary-detach-btn" id="sessionSummaryDetachBtn" type="button" aria-label="Open Summary in Mini Window" title="Open Summary in Mini Window" hidden>
-								<span class="session-summary-detach-icon" aria-hidden="true"></span>
 							</button>
 						</div>
 						<div class="dialog-title-status" id="messageSelectionStatus" aria-live="polite" hidden></div>
@@ -142,9 +145,6 @@
 					</button>
 					<button class="dialog-header-share-btn" id="dialogHeaderShareBtn" type="button" aria-label="Share Session Messages" title="Share Session Messages">
 						<span class="dialog-header-share-icon" aria-hidden="true"></span>
-					</button>
-					<button class="dialog-header-summarize-btn" id="dialogHeaderSummarizeBtn" type="button" aria-label="Summarize Session Messages" title="Summarize Session Messages">
-						<span class="dialog-header-summarize-icon" aria-hidden="true"></span>
 					</button>
 					<button class="dialog-header-fullscreen-btn" id="dialogHeaderFullscreenBtn" type="button" aria-label="Enter Full Screen" title="Enter Full Screen">
 						<span class="dialog-header-fullscreen-icon" aria-hidden="true"></span>
@@ -188,7 +188,7 @@
 
 			<section class="session-summary-page" id="sessionSummaryPage" hidden>
 				<div class="session-summary-page-body" id="sessionSummaryContent">
-					<div class="session-summary-empty">No summary available for this session yet.</div>
+					<div class="session-summary-empty"></div>
 				</div>
 			</section>
 
