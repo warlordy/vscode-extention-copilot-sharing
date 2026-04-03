@@ -454,6 +454,8 @@
 	display: block;
 }
 :root {
+	--cursor-grab: url("../icons/cursor.svg") 4 2;
+	--cursor-grabbing: url("../icons/cursor-grabbing.svg") 4 2;
 	--bg: #f2f4f7;
 	--panel: #ffffff;
 	--sidebar: #f7f8fa;
@@ -692,22 +694,23 @@ body {
 	height: 22px;
 	flex: 0 0 20px;
 	padding: 0;
-	border: 1px solid #bcc8d4;
+	border: 1px solid #b5bfca;
 	border-radius: 6px;
-	background-color: #eef3f8;
+	background-color: #dde5ee;
 	background-image: url("../icons/drag-handle.svg");
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 14px 14px;
-	cursor: grab;
-	transition: border-color 0.15s ease, background-color 0.15s ease;
+	cursor: var(--cursor-grab), grab;
+	transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 	align-items: center;
 	justify-content: center;
 }
 
 .sidebar-search-drag-handle:hover {
-	border-color: #aab8c5;
-	background-color: #e3ebf3;
+	border-color: #9eaab7;
+	background-color: #ced8e3;
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .sidebar-search-drag-handle:focus-visible {
@@ -717,18 +720,23 @@ body {
 }
 
 .sidebar-search-drag-handle:active {
-	cursor: grabbing;
+	cursor: var(--cursor-grabbing), grabbing;
 }
 
 #appSearchBar .sidebar-search-drag-handle {
 	display: inline-flex;
-	border-color: #9bc5ad;
-	background-color: #e2f2e8;
+	border-color: #a8b3bf;
+	background-color: #d5dee8;
 }
 
 #appSearchBar .sidebar-search-drag-handle:hover {
-	border-color: #83b79a;
-	background-color: #d3ebde;
+	border-color: #95a2af;
+	background-color: #c6d1dd;
+}
+
+#appSearchBar .sidebar-search-drag-handle:active {
+	border-color: #8593a1;
+	background-color: #b9c5d2;
 }
 
 #appSearchBar .sidebar-search-input {
@@ -738,7 +746,7 @@ body {
 }
 
 #appSearchBar.is-dragging {
-	cursor: grabbing;
+	cursor: var(--cursor-grabbing), grabbing;
 	box-shadow: 0 16px 34px rgba(21, 47, 39, 0.24), 0 0 0 2px rgba(121, 187, 152, 0.28);
 }
 
