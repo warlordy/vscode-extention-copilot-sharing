@@ -213,6 +213,26 @@
 							<span class="input-area-resizer-grip" aria-hidden="true">↕️</span>
 						</button>
 					</div>
+					<div class="copilot-share-menu input-more-actions-menu">
+						<button
+							class="input-more-actions-trigger"
+							id="inputMoreActionsBtn"
+							type="button"
+							aria-haspopup="menu"
+							aria-expanded="false"
+							aria-controls="inputMoreActionsMenu"
+							aria-label="More Input Actions"
+							title="More Input Actions"
+						>
+							<span class="input-more-actions-icon" aria-hidden="true">⚙️</span>
+						</button>
+						<div class="copilot-share-menu-popup input-more-actions-popup" id="inputMoreActionsMenu" role="menu" hidden>
+							<button class="copilot-share-menu-item" id="togglePromptSuggestionsMenuItem" type="button" role="menuitem" aria-label="Disable Prompt Suggestions" title="Disable Prompt Suggestions">
+								<span class="copilot-share-menu-item-icon input-more-actions-item-icon is-enabled" id="togglePromptSuggestionsMenuIcon" aria-hidden="true"></span>
+								<span class="copilot-share-menu-item-text" id="togglePromptSuggestionsMenuLabel">Disable Prompt Suggestions</span>
+							</button>
+						</div>
+					</div>
 					<div class="input-actions">
 						<div class="model-picker" id="modelPicker">
 							<button

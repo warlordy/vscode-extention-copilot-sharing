@@ -1050,6 +1050,7 @@ const STORAGE_KEY = "llm-dialog-sessions-v1";
 const ACTIVE_KEY = "llm-dialog-active-session";
 const SIDEBAR_KEY = "llm-dialog-sidebar-collapsed-v1";
 const CUSTOM_ORDER_KEY = "llm-dialog-session-custom-order-v1";
+const INPUT_MORE_ACTIONS_PROMPT_SUGGESTION_KEY = "llm-dialog-input-disable-prompt-suggestions-v1";
 
 // ====== Seed data for first launch ======
 const DEFAULT_SESSIONS = [
@@ -1096,6 +1097,7 @@ let draggingSessionId = null;
 let dragDropSessionId = null;
 let dragDropInsertAfter = false;
 let suppressSessionClickUntil = 0;
+let isPromptSuggestionDisabled = false;
 
 // ====== DOM references ======
 const appEl = document.getElementById("app");
@@ -1115,6 +1117,11 @@ const promptInputEl = document.getElementById("promptInput");
 const promptSuggestionPopupEl = document.getElementById("promptSuggestionPopup");
 const inputAreaEl = document.querySelector(".input-area");
 const inputAreaResizerEl = document.getElementById("inputAreaResizer");
+const inputMoreActionsBtnEl = document.getElementById("inputMoreActionsBtn");
+const inputMoreActionsMenuEl = document.getElementById("inputMoreActionsMenu");
+const togglePromptSuggestionsMenuItemEl = document.getElementById("togglePromptSuggestionsMenuItem");
+const togglePromptSuggestionsMenuIconEl = document.getElementById("togglePromptSuggestionsMenuIcon");
+const togglePromptSuggestionsMenuLabelEl = document.getElementById("togglePromptSuggestionsMenuLabel");
 const dialogEl = document.querySelector(".dialog");
 const dialogHeaderEl = document.querySelector(".dialog-header");
 const modelSelectEl = document.getElementById("modelSelect");
@@ -2772,6 +2779,7 @@ function loadState() {
 
 	isSidebarCollapsed = localStorage.getItem(SIDEBAR_KEY) === "1";
 	hasCustomSessionOrder = localStorage.getItem(CUSTOM_ORDER_KEY) === "1";
+	isPromptSuggestionDisabled = localStorage.getItem(INPUT_MORE_ACTIONS_PROMPT_SUGGESTION_KEY) === "1";
 }
 
 function applySidebarState() {
@@ -3110,6 +3118,49 @@ function hidePromptSuggestionPopup() {
 	}
 }
 
+function closeInputMoreActionsMenu() {
+	if (inputMoreActionsMenuEl instanceof HTMLElement) {
+		inputMoreActionsMenuEl.hidden = true;
+	}
+	if (inputMoreActionsBtnEl instanceof HTMLElement) {
+		inputMoreActionsBtnEl.setAttribute("aria-expanded", "false");
+	}
+}
+
+function updatePromptSuggestionsMenuItemState() {
+	if (togglePromptSuggestionsMenuLabelEl) {
+		togglePromptSuggestionsMenuLabelEl.textContent = isPromptSuggestionDisabled
+			? "Enable Prompt Suggestions"
+			: "Disable Prompt Suggestions";
+	}
+	if (togglePromptSuggestionsMenuItemEl) {
+		togglePromptSuggestionsMenuItemEl.setAttribute("aria-pressed", isPromptSuggestionDisabled ? "true" : "false");
+		togglePromptSuggestionsMenuItemEl.setAttribute(
+			"title",
+			isPromptSuggestionDisabled ? "Enable Prompt Suggestions" : "Disable Prompt Suggestions"
+		);
+		togglePromptSuggestionsMenuItemEl.setAttribute(
+			"aria-label",
+			isPromptSuggestionDisabled ? "Enable Prompt Suggestions" : "Disable Prompt Suggestions"
+		);
+	}
+	if (togglePromptSuggestionsMenuIconEl) {
+		togglePromptSuggestionsMenuIconEl.classList.toggle("is-disabled", isPromptSuggestionDisabled);
+		togglePromptSuggestionsMenuIconEl.classList.toggle("is-enabled", !isPromptSuggestionDisabled);
+	}
+}
+
+function setPromptSuggestionDisabled(disabled) {
+	isPromptSuggestionDisabled = Boolean(disabled);
+	localStorage.setItem(INPUT_MORE_ACTIONS_PROMPT_SUGGESTION_KEY, isPromptSuggestionDisabled ? "1" : "0");
+	updatePromptSuggestionsMenuItemState();
+	if (isPromptSuggestionDisabled) {
+		hidePromptSuggestionPopup();
+	} else if (promptInputEl && document.activeElement === promptInputEl) {
+		renderPromptSuggestions(promptInputEl.value);
+	}
+}
+
 function applyPromptSuggestion(index) {
 	if (!promptInputEl || !promptSuggestions.length) {
 		return;
@@ -3156,6 +3207,11 @@ function moveActivePromptSuggestion(direction) {
 
 function renderPromptSuggestions(query) {
 	if (!promptSuggestionPopupEl || !promptInputEl) {
+		return;
+	}
+
+	if (isPromptSuggestionDisabled) {
+		hidePromptSuggestionPopup();
 		return;
 	}
 
@@ -3672,6 +3728,16 @@ function updateInputActionStates() {
 		originalPromptBtnEl.disabled = !hasActiveSession || isLocked || hasInFlightStream || promptPolisherBusy || !hasPromptText || !hasStoredOriginalPrompt || !hasCompletedPromptPolish;
 		originalPromptBtnEl.setAttribute("title", hasCompletedPromptPolish && hasStoredOriginalPrompt ? "Copy Raw Prompt" : "Available after prompt polish finishes");
 	}
+	if (inputMoreActionsBtnEl) {
+		inputMoreActionsBtnEl.disabled = !hasActiveSession;
+		if (inputMoreActionsBtnEl.disabled) {
+			closeInputMoreActionsMenu();
+		}
+	}
+	if (togglePromptSuggestionsMenuItemEl) {
+		togglePromptSuggestionsMenuItemEl.disabled = !hasActiveSession || isLocked;
+	}
+	updatePromptSuggestionsMenuItemState();
 	if (promptInputEl) {
 		promptInputEl.disabled = !hasActiveSession || isLocked || hasInFlightStream || promptPolisherBusy;
 		promptInputEl.placeholder = hasInFlightStream
@@ -4792,6 +4858,15 @@ if (dialogHeaderMenuBtnEl && dialogHeaderMenuEl) {
 		if (!inSessionMenu) {
 			closeAllSessionActionMenus();
 		}
+
+		if (
+			inputMoreActionsMenuEl
+			&& inputMoreActionsBtnEl
+			&& !inputMoreActionsMenuEl.contains(e.target)
+			&& e.target !== inputMoreActionsBtnEl
+		) {
+			closeInputMoreActionsMenu();
+		}
 	});
 
 	// Reset Context button event (now in dialog-header menu) with confirmation
@@ -4831,6 +4906,37 @@ if (dialogHeaderMenuBtnEl && dialogHeaderMenuEl) {
 			dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
 		});
 	}
+}
+
+if (inputMoreActionsBtnEl && inputMoreActionsMenuEl) {
+	inputMoreActionsBtnEl.addEventListener("click", (event) => {
+		if (inputMoreActionsBtnEl.disabled) {
+			closeInputMoreActionsMenu();
+			return;
+		}
+
+		event.stopPropagation();
+		const expanded = inputMoreActionsBtnEl.getAttribute("aria-expanded") === "true";
+		if (expanded) {
+			closeInputMoreActionsMenu();
+			return;
+		}
+
+		inputMoreActionsMenuEl.hidden = false;
+		inputMoreActionsBtnEl.setAttribute("aria-expanded", "true");
+		requestMenuPopupClamp();
+	});
+}
+
+if (togglePromptSuggestionsMenuItemEl) {
+	togglePromptSuggestionsMenuItemEl.addEventListener("click", () => {
+		if (togglePromptSuggestionsMenuItemEl.disabled) {
+			return;
+		}
+
+		setPromptSuggestionDisabled(!isPromptSuggestionDisabled);
+		closeInputMoreActionsMenu();
+	});
 }
 
 
@@ -4898,7 +5004,11 @@ promptInputEl.addEventListener("input", () => {
 		promptHistoryIndex = -1;
 		promptHistoryDraft = promptInputEl.value;
 	}
-	renderPromptSuggestions(promptInputEl.value);
+	if (isPromptSuggestionDisabled) {
+		hidePromptSuggestionPopup();
+	} else {
+		renderPromptSuggestions(promptInputEl.value);
+	}
 	updateInputActionStates();
 			updateInputActionStates();
 });
@@ -4957,6 +5067,15 @@ document.addEventListener("click", (event) => {
 	if (!insidePromptArea) {
 		hidePromptSuggestionPopup();
 	}
+
+	if (
+		inputMoreActionsMenuEl
+		&& inputMoreActionsBtnEl
+		&& !target.closest("#inputMoreActionsBtn")
+		&& !target.closest("#inputMoreActionsMenu")
+	) {
+		closeInputMoreActionsMenu();
+	}
 });
 
 mobileBackBtnEl.addEventListener("click", () => {
@@ -4987,6 +5106,7 @@ if (sidebarToggleBtnEl) {
 // ====== Bootstrapping ======
 initializeInputAreaResize();
 loadState();
+updatePromptSuggestionsMenuItemState();
 if (!sessions.length) {
 	createSession("New Session");
 }
