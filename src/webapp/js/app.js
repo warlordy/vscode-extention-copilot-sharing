@@ -3732,7 +3732,7 @@ function updateInputActionStates() {
 	}
 	if (sendBtnEl) {
 		const hasPromptText = Boolean(promptInputEl && promptInputEl.value.trim());
-		sendBtnEl.disabled = !hasActiveSession || isLocked || (!hasInFlightStream && !hasPromptText);
+		sendBtnEl.disabled = !hasActiveSession || isLocked || promptPolisherBusy || (!hasInFlightStream && !hasPromptText);
 		sendBtnEl.textContent = hasInFlightStream && !isLocked ? "Cancel" : "Send";
 		sendBtnEl.classList.toggle("is-cancel", hasInFlightStream);
 		sendBtnEl.classList.toggle("is-streaming", hasInFlightStream);
