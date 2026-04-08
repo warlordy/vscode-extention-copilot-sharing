@@ -171,6 +171,14 @@
 	background-image: url("../icons/screen-normal.svg");
 }
 
+#dialogHeaderFullscreenBtn2.is-fullscreen .dialog-header-fullscreen-icon {
+	background-image: url("../icons/screen-normal.svg");
+}
+
+#dialogHeaderFullscreenBtn2[hidden] {
+	display: none !important;
+}
+
 .dialog-title-summary-icon {
 	width: 16px;
 	height: 16px;
@@ -306,7 +314,7 @@
 	}
 }
 
-.dialog-header-copy-btn.is-copied .dialog-header-copy-icon {
+#dialogHeaderCopyBtn.is-copied .dialog-header-copy-icon {
 	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%2308a045' d='M6.62 11.2 3.82 8.4a1 1 0 1 0-1.42 1.4l3.52 3.53a1 1 0 0 0 1.42 0l6.26-6.25a1 1 0 0 0-1.42-1.42L6.62 11.2Z'/%3E%3C/svg%3E");
 }
 

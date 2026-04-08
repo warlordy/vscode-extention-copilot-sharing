@@ -1133,6 +1133,8 @@ const resetContextBtnEl = document.getElementById("resetContextBtn");
 const dialogHeaderCopyBtnEl = document.getElementById("dialogHeaderCopyBtn");
 const dialogHeaderShareBtnEl = document.getElementById("dialogHeaderShareBtn");
 const dialogHeaderFullscreenBtnEl = document.getElementById("dialogHeaderFullscreenBtn");
+const dialogHeaderFullscreenBtn2El = document.getElementById("dialogHeaderFullscreenBtn2");
+const dialogHeaderFullscreenSeparatorEl = document.getElementById("dialogHeaderFullscreenSeparator");
 const dialogHeaderSummarizeBtnEl = document.getElementById("dialogHeaderSummarizeBtn");
 const dialogHeaderExportMenuItemEl = document.getElementById("dialogHeaderExportMenuItem");
 const dialogHeaderMenuBtnEl = document.getElementById("dialogHeaderMenuBtn");
@@ -1160,7 +1162,21 @@ function checkMobileDevice() {
 	return isAndroidDevice || isIPhoneDevice || isMobileUAData || (isIOSDevice && isSmallCoarsePointer);
 }
 
+function syncFullscreenButtonVisibilityForDevice() {
+	const showMenuFullscreenButton = isMobileDevice;
+	if (dialogHeaderFullscreenBtnEl) {
+		dialogHeaderFullscreenBtnEl.hidden = showMenuFullscreenButton;
+	}
+	if (dialogHeaderFullscreenBtn2El) {
+		dialogHeaderFullscreenBtn2El.hidden = !showMenuFullscreenButton;
+	}
+	if (dialogHeaderFullscreenSeparatorEl) {
+		dialogHeaderFullscreenSeparatorEl.hidden = !showMenuFullscreenButton;
+	}
+}
+
 const isMobileDevice = checkMobileDevice();
+syncFullscreenButtonVisibilityForDevice();
 if (isMobileDevice) {
 	if (sidebarToggleBtnEl) {
 		sidebarToggleBtnEl.hidden = true;
@@ -3805,23 +3821,36 @@ function canUseFullscreenApi() {
 }
 
 function updateFullscreenButtonState() {
-	if (!dialogHeaderFullscreenBtnEl) {
+	const fullscreenButtons = [dialogHeaderFullscreenBtnEl, dialogHeaderFullscreenBtn2El].filter((buttonEl) => buttonEl instanceof HTMLButtonElement);
+	if (!fullscreenButtons.length) {
 		return;
 	}
 
 	if (!canUseFullscreenApi()) {
-		dialogHeaderFullscreenBtnEl.disabled = true;
-		dialogHeaderFullscreenBtnEl.classList.remove("is-fullscreen");
-		dialogHeaderFullscreenBtnEl.title = "Full Screen not supported";
-		dialogHeaderFullscreenBtnEl.setAttribute("aria-label", "Full Screen not supported");
+		for (const fullscreenButtonEl of fullscreenButtons) {
+			fullscreenButtonEl.disabled = true;
+			fullscreenButtonEl.classList.remove("is-fullscreen");
+			fullscreenButtonEl.title = "Full Screen not supported";
+			fullscreenButtonEl.setAttribute("aria-label", "Full Screen not supported");
+			const buttonTextEl = fullscreenButtonEl.querySelector(".copilot-share-menu-item-text");
+			if (buttonTextEl) {
+				buttonTextEl.textContent = "Full Screen not supported";
+			}
+		}
 		return;
 	}
 
 	const isFullscreen = Boolean(getFullscreenElement());
-	dialogHeaderFullscreenBtnEl.disabled = false;
-	dialogHeaderFullscreenBtnEl.classList.toggle("is-fullscreen", isFullscreen);
-	dialogHeaderFullscreenBtnEl.title = isFullscreen ? "Exit Full Screen" : "Enter Full Screen";
-	dialogHeaderFullscreenBtnEl.setAttribute("aria-label", isFullscreen ? "Exit Full Screen" : "Enter Full Screen");
+	for (const fullscreenButtonEl of fullscreenButtons) {
+		fullscreenButtonEl.disabled = false;
+		fullscreenButtonEl.classList.toggle("is-fullscreen", isFullscreen);
+		fullscreenButtonEl.title = isFullscreen ? "Exit Full Screen" : "Enter Full Screen";
+		fullscreenButtonEl.setAttribute("aria-label", isFullscreen ? "Exit Full Screen" : "Enter Full Screen");
+		const buttonTextEl = fullscreenButtonEl.querySelector(".copilot-share-menu-item-text");
+		if (buttonTextEl) {
+			buttonTextEl.textContent = isFullscreen ? "Exit Full Screen" : "Enter Full Screen";
+		}
+	}
 }
 
 async function requestFullscreenMode() {
@@ -4681,6 +4710,10 @@ if (dialogHeaderCopyBtnEl) {
 		}
 		try {
 			await copyMessageRecords(active.messages);
+			if (dialogHeaderMenuEl && dialogHeaderMenuBtnEl) {
+				dialogHeaderMenuEl.hidden = true;
+				dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
+			}
 			showDialogHeaderCopyFeedback();
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
@@ -4704,6 +4737,16 @@ if (dialogHeaderShareBtnEl) {
 
 if (dialogHeaderFullscreenBtnEl) {
 	dialogHeaderFullscreenBtnEl.addEventListener("click", () => {
+		void toggleFullscreenMode();
+	});
+}
+
+if (dialogHeaderFullscreenBtn2El) {
+	dialogHeaderFullscreenBtn2El.addEventListener("click", () => {
+		if (dialogHeaderMenuEl && dialogHeaderMenuBtnEl) {
+			dialogHeaderMenuEl.hidden = true;
+			dialogHeaderMenuBtnEl.setAttribute("aria-expanded", "false");
+		}
 		void toggleFullscreenMode();
 	});
 }
