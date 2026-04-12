@@ -1104,7 +1104,6 @@ const minDialogContentHeight = 96;
 
 const MESSAGE_CONTEXT_MENU_ITEMS = [
 	{ action: "copy", label: "Copy", glyph: "⧉" },
-	{ action: "reference", label: "Reference", glyph: "⌁" },
 	{ action: "share", label: "Share", glyph: "⤴" },
 	{ action: "favorites", label: "Favorites", glyph: "☆" },
 	{ action: "select-multiple", label: "Select Multiple", glyph: "✓" },
