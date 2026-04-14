@@ -22,6 +22,7 @@ type MenuAction =
 	| 'start'
 	| 'stop'
 	| 'open'
+	| 'openPublic'
 	| 'copyLocal'
 	| 'copyPublic'
 	| 'copyAccessCode'
@@ -68,6 +69,51 @@ type StatusBarUiDependencies = {
 type StatusBarUiController = vscode.Disposable & {
 	refresh: () => void;
 };
+
+type PublicUrlSubMenuAction = 'copyPublicUrl' | 'openQrImage' | 'copyQrImageUrl';
+
+type PublicUrlSubMenuItem = vscode.QuickPickItem & {
+	action?: PublicUrlSubMenuAction;
+};
+
+async function showPublicUrlSubMenu(publicUrl: string): Promise<void> {
+	const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(publicUrl)}`;
+
+	const items: PublicUrlSubMenuItem[] = [
+		{ label: 'Public URL', kind: vscode.QuickPickItemKind.Separator },
+		{ label: '$(copy) Copy Public URL Again', detail: publicUrl, action: 'copyPublicUrl' },
+		
+		{ label: 'QR Code', kind: vscode.QuickPickItemKind.Separator },
+		{ label: '$(device-camera) Open QR Code Image', detail: qrImageUrl, action: 'openQrImage' },
+		{ label: '$(link-external) Copy QR Code Image Link', detail: qrImageUrl, action: 'copyQrImageUrl' }
+	];
+
+	const picked = await vscode.window.showQuickPick(items, {
+		placeHolder: 'Public URL copied successfully. Esc to main menu.',
+		matchOnDescription: true,
+		matchOnDetail: true
+	});
+
+	if (!picked?.action) {
+		return;
+	}
+
+	switch (picked.action) {
+		case 'copyPublicUrl':
+			await vscode.env.clipboard.writeText(publicUrl);
+			void vscode.window.showInformationMessage(`Copied: ${publicUrl}`);
+			break;
+		case 'openQrImage':
+			await vscode.env.openExternal(vscode.Uri.parse(qrImageUrl));
+			break;
+		case 'copyQrImageUrl':
+			await vscode.env.clipboard.writeText(qrImageUrl);
+			void vscode.window.showInformationMessage('QR code image link copied.');
+			break;
+		default:
+			break;
+	}
+}
 
 export function createStatusBarUiController(dependencies: StatusBarUiDependencies): StatusBarUiController {
 	const { context, extensionNameForUi, openMenuCommand } = dependencies;
@@ -161,12 +207,16 @@ async function openControlMenu(
 			},
 			{ label: '$(play) Start Sharing', action: 'start' },
 			{ label: '$(debug-stop) Stop Sharing', action: 'stop' },
+
 			{ label: 'Links', kind: vscode.QuickPickItemKind.Separator },
-			{ label: '$(globe) Open Web', action: 'open' },
+			{ label: '$(globe) Open Local Web', action: 'open' },
 			{ label: '$(window) Copy Local URL', action: 'copyLocal' },
+			{ label: '$(globe) Open Public URL', action: 'openPublic' },
 			{ label: '$(multiple-windows) Copy Public URL', action: 'copyPublic' },
+
 			{ label: `Access Control`, kind: vscode.QuickPickItemKind.Separator },
 			...accessControlItems,
+
 			{ label: 'Custom', kind: vscode.QuickPickItemKind.Separator },
 			{ label: '$(paintcan) Set Status Icons', action: 'setIcons' }
 		];
@@ -244,6 +294,16 @@ async function openControlMenu(
 				await vscode.env.openExternal(vscode.Uri.parse(latestState.localUrl));
 				break;
 			}
+			case 'openPublic': {
+				const latestState = dependencies.getServerRuntimeState();
+				if (latestState.networkUrls.length === 0) {
+					void vscode.window.showWarningMessage('Public URL is unavailable to open.');
+					break;
+				}
+
+				await vscode.env.openExternal(vscode.Uri.parse(latestState.networkUrls[0]));
+				break;
+			}
 			case 'copyLocal': {
 				const latestState = dependencies.getServerRuntimeState();
 				if (!latestState.localUrl) {
@@ -254,7 +314,7 @@ async function openControlMenu(
 				}
 
 				await vscode.env.clipboard.writeText(latestState.localUrl);
-				void vscode.window.showInformationMessage(`Copied: ${latestState.localUrl}`);
+				void vscode.window.showInformationMessage(`Local URL Copied Successfully: ${latestState.localUrl}`);
 				break;
 			}
 			case 'copyPublic': {
@@ -264,8 +324,10 @@ async function openControlMenu(
 					break;
 				}
 
-				await vscode.env.clipboard.writeText(latestState.networkUrls[0]);
-				void vscode.window.showInformationMessage(`Copied: ${latestState.networkUrls[0]}`);
+				const publicUrl = latestState.networkUrls[0];
+				await vscode.env.clipboard.writeText(publicUrl);
+				void vscode.window.showInformationMessage(`Public URL Copied Successfully: ${publicUrl}`);
+				await showPublicUrlSubMenu(publicUrl);
 				break;
 			}
 			case 'copyAccessCode': {

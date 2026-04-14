@@ -359,9 +359,188 @@ function initCopilotSharePanel() {
 	}
 
 	let currentPublicUrl = "";
+	let publicUrlQrPopupState = null;
+
+	function ensurePublicUrlQrPopupElements() {
+		if (publicUrlQrPopupState) {
+			return publicUrlQrPopupState;
+		}
+
+		const overlay = document.createElement("div");
+		overlay.className = "public-url-qr-modal-overlay";
+		overlay.hidden = true;
+
+		const dialog = document.createElement("div");
+		dialog.className = "public-url-qr-modal";
+		dialog.setAttribute("role", "dialog");
+		dialog.setAttribute("aria-modal", "true");
+		dialog.setAttribute("aria-labelledby", "publicUrlQrDialogTitle");
+
+		const title = document.createElement("h2");
+		title.id = "publicUrlQrDialogTitle";
+		title.className = "public-url-qr-modal-title";
+		title.textContent = "Public URL Ready for Local Network (LAN) Use";
+
+		const copiedHintList = document.createElement("ul");
+		copiedHintList.className = "public-url-qr-modal-bullet-list";
+		const copiedHintItem = document.createElement("li");
+		copiedHintItem.textContent = "Public URL copied successfully";
+		copiedHintList.append(copiedHintItem);
+
+		const scanHintList = document.createElement("ul");
+		scanHintList.className = "public-url-qr-modal-bullet-list";
+		const scanHintItem = document.createElement("li");
+		scanHintItem.textContent = "You can also scan this QR code to open it.";
+		scanHintList.append(scanHintItem);
+
+		const qrImage = document.createElement("img");
+		qrImage.className = "public-url-qr-modal-image";
+		qrImage.alt = "Public URL QR code";
+		qrImage.width = 152;
+		qrImage.height = 152;
+
+		const qrFallback = document.createElement("div");
+		qrFallback.className = "public-url-qr-modal-fallback";
+		qrFallback.textContent = "Unable to load QR image. You can still use the copied URL below.";
+		qrFallback.hidden = true;
+
+		const urlValue = document.createElement("div");
+		urlValue.className = "public-url-qr-modal-url";
+
+		const closeBtn = document.createElement("button");
+		closeBtn.type = "button";
+		closeBtn.className = "public-url-qr-modal-close";
+		closeBtn.textContent = "Close";
+
+		dialog.append(title, copiedHintList, urlValue, scanHintList, qrImage, qrFallback, closeBtn);
+		overlay.append(dialog);
+		document.body.append(overlay);
+
+		publicUrlQrPopupState = {
+			overlay,
+			dialog,
+			qrImage,
+			qrFallback,
+			urlValue,
+			closeBtn,
+			cleanup: null
+		};
+
+		return publicUrlQrPopupState;
+	}
+
+	function closePublicUrlQrPopup() {
+		const state = ensurePublicUrlQrPopupElements();
+		if (typeof state.cleanup === "function") {
+			state.cleanup();
+		}
+		state.overlay.hidden = true;
+	}
+
+	function showPublicUrlQrPopup(publicUrl) {
+		const targetUrl = String(publicUrl || "").trim();
+		if (!targetUrl) {
+			return;
+		}
+
+		const state = ensurePublicUrlQrPopupElements();
+		if (typeof state.cleanup === "function") {
+			state.cleanup();
+		}
+
+		const qrSource = `https://api.qrserver.com/v1/create-qr-code/?size=152x152&data=${encodeURIComponent(targetUrl)}`;
+		state.qrFallback.hidden = true;
+		state.qrImage.hidden = false;
+		state.urlValue.textContent = targetUrl;
+
+		const onImageError = () => {
+			state.qrImage.hidden = true;
+			state.qrFallback.hidden = false;
+		};
+
+		const onImageLoad = () => {
+			state.qrFallback.hidden = true;
+			state.qrImage.hidden = false;
+		};
+
+		const onOverlayClick = (event) => {
+			if (event.target === state.overlay) {
+				closePublicUrlQrPopup();
+			}
+		};
+
+		const onKeyDown = (event) => {
+			if (event.key !== "Escape" || event.defaultPrevented || state.overlay.hidden) {
+				return;
+			}
+			event.preventDefault();
+			closePublicUrlQrPopup();
+		};
+
+		const onClose = () => {
+			closePublicUrlQrPopup();
+		};
+
+		state.qrImage.addEventListener("error", onImageError, { once: true });
+		state.qrImage.addEventListener("load", onImageLoad, { once: true });
+		state.overlay.addEventListener("click", onOverlayClick);
+		window.addEventListener("keydown", onKeyDown, true);
+		state.closeBtn.addEventListener("click", onClose);
+
+		state.cleanup = () => {
+			state.qrImage.removeEventListener("error", onImageError);
+			state.qrImage.removeEventListener("load", onImageLoad);
+			state.overlay.removeEventListener("click", onOverlayClick);
+			window.removeEventListener("keydown", onKeyDown, true);
+			state.closeBtn.removeEventListener("click", onClose);
+			state.cleanup = null;
+		};
+
+		state.qrImage.src = qrSource;
+		state.overlay.hidden = false;
+		window.setTimeout(() => {
+			state.closeBtn.focus();
+		}, 0);
+	}
 
 	function setMenuLabel(labelEl, value) {
 		labelEl.textContent = value;
+	}
+
+	async function copyTextWithFallback(value) {
+		const text = String(value || "");
+		if (!text) {
+			return false;
+		}
+
+		if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+			try {
+				await navigator.clipboard.writeText(text);
+				return true;
+			} catch {
+				// Continue to legacy fallback for mobile and restricted contexts.
+			}
+		}
+
+		try {
+			const textArea = document.createElement("textarea");
+			textArea.value = text;
+			textArea.setAttribute("readonly", "");
+			textArea.setAttribute("aria-hidden", "true");
+			textArea.style.position = "fixed";
+			textArea.style.top = "0";
+			textArea.style.left = "0";
+			textArea.style.opacity = "0";
+			document.body.append(textArea);
+			textArea.focus();
+			textArea.select();
+			textArea.setSelectionRange(0, textArea.value.length);
+			const copied = document.execCommand("copy");
+			document.body.removeChild(textArea);
+			return copied;
+		} catch {
+			return false;
+		}
 	}
 
 	function updateMenuActionState() {
@@ -419,13 +598,19 @@ function initCopilotSharePanel() {
 		}
 
 		try {
-			await navigator.clipboard.writeText(copyTarget);
-			setMenuLabel(copyPublicUrlMenuLabelEl, "Copied");
+			const copied = await copyTextWithFallback(copyTarget);
+			if (copied) {
+				setMenuLabel(copyPublicUrlMenuLabelEl, "Copied");
+			} else {
+				setMenuLabel(copyPublicUrlMenuLabelEl, "Copy failed");
+			}
+			showPublicUrlQrPopup(copyTarget);
 			window.setTimeout(() => {
 				setMenuLabel(copyPublicUrlMenuLabelEl, copyBtnName);
 			}, 1200);
 		} catch {
-			setMenuLabel(copyPublicUrlMenuLabelEl, "Failed");
+			showPublicUrlQrPopup(copyTarget);
+			setMenuLabel(copyPublicUrlMenuLabelEl, "Copy failed");
 			window.setTimeout(() => {
 				setMenuLabel(copyPublicUrlMenuLabelEl, copyBtnName);
 			}, 1200);
