@@ -44,6 +44,16 @@ async function syncVendorAssets() {
 		outfile: path.join(vendorDir, 'highlight.common.bundle.js')
 	});
 
+	await build({
+		entryPoints: [path.join(projectRoot, 'node_modules', 'qrcode', 'lib', 'browser.js')],
+		bundle: true,
+		format: 'iife',
+		globalName: 'QRCode',
+		platform: 'browser',
+		outfile: path.join(vendorDir, 'qrcode.min.js'),
+		minify: true
+	});
+
 	await rm(path.join(vendorDir, 'highlight.common.js'), { force: true });
 	console.log('[sync-web-vendor] vendor assets updated');
 }

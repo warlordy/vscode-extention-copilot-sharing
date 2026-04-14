@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as QRCode from 'qrcode';
 
 const STATUS_CODICON_OPTIONS = {
 	eye: ['eye', 'eye-closed'],
@@ -70,22 +71,36 @@ type StatusBarUiController = vscode.Disposable & {
 	refresh: () => void;
 };
 
-type PublicUrlSubMenuAction = 'copyPublicUrl' | 'openQrImage' | 'copyQrImageUrl';
+function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+type PublicUrlSubMenuAction = 'copyPublicUrl' | 'openQrImage';
+
+type PublicUrlSubMenuResult = 'backToMainMenu' | 'exitMainMenu';
 
 type PublicUrlSubMenuItem = vscode.QuickPickItem & {
 	action?: PublicUrlSubMenuAction;
 };
 
-async function showPublicUrlSubMenu(publicUrl: string): Promise<void> {
-	const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(publicUrl)}`;
+async function showPublicUrlSubMenu(publicUrl: string): Promise<PublicUrlSubMenuResult> {
+	const qrImageDataUrl = await QRCode.toDataURL(publicUrl, {
+		width: 180,
+		margin: 1,
+		errorCorrectionLevel: 'M'
+	});
 
 	const items: PublicUrlSubMenuItem[] = [
 		{ label: 'Public URL', kind: vscode.QuickPickItemKind.Separator },
 		{ label: '$(copy) Copy Public URL Again', detail: publicUrl, action: 'copyPublicUrl' },
 		
 		{ label: 'QR Code', kind: vscode.QuickPickItemKind.Separator },
-		{ label: '$(device-camera) Open QR Code Image', detail: qrImageUrl, action: 'openQrImage' },
-		{ label: '$(link-external) Copy QR Code Image Link', detail: qrImageUrl, action: 'copyQrImageUrl' }
+		{ label: '$(device-camera) Open QR Code Image', detail: 'Open QR image in VS Code tab', action: 'openQrImage' }
 	];
 
 	const picked = await vscode.window.showQuickPick(items, {
@@ -95,23 +110,105 @@ async function showPublicUrlSubMenu(publicUrl: string): Promise<void> {
 	});
 
 	if (!picked?.action) {
-		return;
+		return 'backToMainMenu';
 	}
 
 	switch (picked.action) {
 		case 'copyPublicUrl':
 			await vscode.env.clipboard.writeText(publicUrl);
 			void vscode.window.showInformationMessage(`Copied: ${publicUrl}`);
-			break;
-		case 'openQrImage':
-			await vscode.env.openExternal(vscode.Uri.parse(qrImageUrl));
-			break;
-		case 'copyQrImageUrl':
-			await vscode.env.clipboard.writeText(qrImageUrl);
-			void vscode.window.showInformationMessage('QR code image link copied.');
-			break;
+			return 'backToMainMenu';
+		case 'openQrImage': {
+			const safePublicUrl = escapeHtml(publicUrl);
+			const safeQrImageDataUrl = escapeHtml(qrImageDataUrl);
+			const panel = vscode.window.createWebviewPanel(
+				'copilotSharePublicUrlQr',
+				'Public URL QR Code',
+				vscode.ViewColumn.Active,
+				{
+					enableScripts: false
+				}
+			);
+
+			panel.webview.html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Public URL QR Code</title>
+	<style>
+		:root {
+			color-scheme: light dark;
+		}
+		body {
+			margin: 0;
+			padding: 16px;
+			font-family: var(--vscode-font-family);
+			color: var(--vscode-foreground);
+			background: var(--vscode-editor-background);
+		}
+		.popup {
+			max-width: 420px;
+			margin: 0 auto;
+			border: 1px solid var(--vscode-input-border);
+			border-radius: 12px;
+			padding: 14px;
+			display: grid;
+			gap: 10px;
+			background:
+				linear-gradient(180deg, color-mix(in srgb, var(--vscode-editor-background) 96%, #ffffff 4%) 0%, var(--vscode-editor-background) 100%);
+			box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+		}
+		h2 {
+			margin: 0;
+			font-size: 15px;
+			font-weight: 700;
+		}
+		ul {
+			margin: 0;
+			padding-left: 16px;
+			font-size: 12px;
+			line-height: 1.45;
+		}
+		.url {
+			width: 100%;
+			padding: 8px 10px;
+			border: 1px solid var(--vscode-input-border);
+			border-radius: 6px;
+			background: var(--vscode-input-background);
+			word-break: break-all;
+			font-family: var(--vscode-editor-font-family, monospace);
+			font-size: 12px;
+		}
+		.qr-wrap {
+			display: grid;
+			justify-items: center;
+		}
+		img {
+			width: 150px;
+			height: 150px;
+			border: 1px solid var(--vscode-input-border);
+			border-radius: 8px;
+			background: #ffffff;
+			padding: 6px;
+		}
+	</style>
+</head>
+<body>
+	<div class="popup">
+		<h2>Public URL Ready for Local Network (LAN) Use</h2>
+		<ul><li>Public URL: ${safePublicUrl}</li></ul>
+		<ul><li>QR Code for Easy Access:</li></ul>
+		<div class="qr-wrap">
+			<img src="${safeQrImageDataUrl}" alt="Public URL QR code" />
+		</div>
+	</div>
+</body>
+</html>`;
+			return 'exitMainMenu';
+		}
 		default:
-			break;
+			return 'backToMainMenu';
 	}
 }
 
@@ -327,7 +424,10 @@ async function openControlMenu(
 				const publicUrl = latestState.networkUrls[0];
 				await vscode.env.clipboard.writeText(publicUrl);
 				void vscode.window.showInformationMessage(`Public URL Copied Successfully: ${publicUrl}`);
-				await showPublicUrlSubMenu(publicUrl);
+				const subMenuResult = await showPublicUrlSubMenu(publicUrl);
+				if (subMenuResult === 'exitMainMenu') {
+					return;
+				}
 				break;
 			}
 			case 'copyAccessCode': {

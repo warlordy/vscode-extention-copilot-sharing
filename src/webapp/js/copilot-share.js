@@ -448,7 +448,6 @@ function initCopilotSharePanel() {
 			state.cleanup();
 		}
 
-		const qrSource = `https://api.qrserver.com/v1/create-qr-code/?size=152x152&data=${encodeURIComponent(targetUrl)}`;
 		state.qrFallback.hidden = true;
 		state.qrImage.hidden = false;
 		state.urlValue.textContent = targetUrl;
@@ -496,11 +495,32 @@ function initCopilotSharePanel() {
 			state.cleanup = null;
 		};
 
-		state.qrImage.src = qrSource;
-		state.overlay.hidden = false;
-		window.setTimeout(() => {
-			state.closeBtn.focus();
-		}, 0);
+		const qrCodeApi = window.QRCode;
+		if (!qrCodeApi || typeof qrCodeApi.toDataURL !== "function") {
+			onImageError();
+			state.overlay.hidden = false;
+			window.setTimeout(() => {
+				state.closeBtn.focus();
+			}, 0);
+			return;
+		}
+
+		qrCodeApi.toDataURL(targetUrl, {
+			width: 152,
+			margin: 1,
+			errorCorrectionLevel: "M"
+		}, (error, dataUrl) => {
+			if (error || !dataUrl) {
+				onImageError();
+			} else {
+				state.qrImage.src = dataUrl;
+			}
+
+			state.overlay.hidden = false;
+			window.setTimeout(() => {
+				state.closeBtn.focus();
+			}, 0);
+		});
 	}
 
 	function setMenuLabel(labelEl, value) {
