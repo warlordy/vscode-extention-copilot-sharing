@@ -195,13 +195,23 @@ sequenceDiagram
 
 3. Session Summary Dialog
    - <img src="src/doc/readme/web-ui-current-session-summary-dialog.drawio.png" alt="web-ui-current-session-summary-dialog" style="display: block; width: min(100%, 400px); height: auto; margin-top: 0.45rem; border: 1px solid #d0d7de; border-radius: 10px; background: #ffffff; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);" />
+
+<a id="current-session-input-area"></a>
+
 4. Input Area
    - <img src="src/doc/readme/web-ui-current-session-input-area.drawio.png" alt="web-ui-current-session-input-area" style="display: block; width: min(100%, 560px); height: auto; margin-top: 0.45rem; border: 1px solid #d0d7de; border-radius: 10px; background: #ffffff; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);" />
+
+<a id="current-session-input-area-more-actions"></a>
+
 5. More Input Actions
    - <img src="src/doc/readme/web-ui-current-session-input-area-more-actions.png" alt="web-ui-current-session-input-area-more-actions" style="display: block; width: min(100%, 200px); height: auto; margin-top: 0.45rem; border: 1px solid #d0d7de; border-radius: 10px; background: #ffffff; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);" />
 
+<a id="user-prompt-context-menu"></a>
+
 6. User Prompt Context Menu
    - <img src="src/doc/readme/web-ui-prompt-context-menu.drawio.png" alt="web-ui-current-session-input-area-more-actions" style="display: block; width: min(100%, 300px); height: auto; margin-top: 0.45rem; border: 1px solid #d0d7de; border-radius: 10px; background: #ffffff; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);" />
+
+<a id="agent-response-context-menu"></a>
 
 7. Agent Response Context Menu
    - <img src="src/doc/readme/web-ui-agent-context-menu.drawio.png" alt="web-ui-current-session-input-area-more-actions" style="display: block; width: min(100%, 210px); height: auto; margin-top: 0.45rem; border: 1px solid #d0d7de; border-radius: 10px; background: #ffffff; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);" />
@@ -237,7 +247,7 @@ sequenceDiagram
 | Favorite | Mark selected user prompts or agent responses as favorites.|
 | Select Multiple | Select multiple user prompts or agent responses to perform `Copy`, `Favorite`, and `Delete` actions in batch. |
 | Retry | Resend the selected user prompt to generate a new agent response. |
-| Delete | Delete selected user prompts or agent responses.|
+| Delete | Permanently delete selected user prompts or agent responses.|
 
 ## Usage Examples
 
@@ -270,7 +280,13 @@ Access the web hub to use Copilot through a session-oriented workflow.
 |Rebuild Session Context|Click|
 
 #### 2.2 Conversation Operations
-1. Right-click a message bubble for either a prompt or an agent response to open context menus for copy, share, retry, favorite, and multi-selection actions.
-2. Enable historical prompt search to quickly find and reuse similar previous prompts while typing a new one.
-3. Polish the original prompt to use LLMs more efficiently with a structured input.
-4. Select LLM models based on your needs. 
+
+| Operation        | User Interaction |
+|------------------|---------|
+| Select Model     | Click [`Model Picker`](#current-session-input-area)|
+| Polish Prompt    | Click [`Polish Prompt`](#current-session-input-area)|
+| Resend Prompt    | Click `Retry` in the [`user prompt context menu`](#user-prompt-context-menu)|
+| Enable Prompt Suggestions| Click [`Enable Prompt Suggestions`](#current-session-input-area-more-actions)|
+| Copy Message     | Click `Copy` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
+| Favorite Message | Click `Favorite` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
+| Delete Message   | Click `Delete` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
