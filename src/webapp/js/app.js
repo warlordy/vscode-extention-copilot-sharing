@@ -183,7 +183,7 @@ const appSearchFloatingEdgePadding = {
 	bottom: 8
 };
 const defaultAppSearchPlaceholder = appSearchInputEl?.getAttribute("placeholder") || "Search All Sessions";
-const currentSessionAppSearchPlaceholder = "Search Current Session";
+const currentSessionAppSearchPlaceholder = "Search Session";
 
 function setAppSearchScope(scope) {
 	appSearchScope = scope === APP_SEARCH_SCOPE_CURRENT ? APP_SEARCH_SCOPE_CURRENT : APP_SEARCH_SCOPE_ALL;

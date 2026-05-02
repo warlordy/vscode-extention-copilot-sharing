@@ -147,11 +147,11 @@ sequenceDiagram
 | Button               | Purpose |
 |----------------------|---------|
 | Collapse Sidebar     | Toggle the sidebar between expanded and collapsed views to focus your workspace.|
-| Create New Session   | Start a new chat session with Copilot.|
+| Create Session   | Start a new chat session with Copilot.|
 | Search All Sessions  | Find matching text across every session in one search.|
 | More Actions         | Open the More Actions menu for additional workspace controls.|
 | Share All Sessions   | Export conversations from all sessions to individual Markdown files and download them as a single ZIP package for sharing and review.|
-| Import A Session     | Import a Markdown session file to restore a previous conversation and metadata.|
+| Import Session     | Import a Markdown session file to restore a previous conversation and metadata.|
 | Export All Sessions  | Export conversations and metadata from all sessions to individual Markdown files and download them as a single ZIP package for local backup, rebuild, review and transfer.|
 | Copy Public URL      | Copy the LAN-accessible web hub URL for quick sharing to other devices.|
 | Open Public URL      | Open the LAN-accessible web hub URL in your browser.|
@@ -204,7 +204,7 @@ sequenceDiagram
 | Button         | Purpose |
 |----------------|---------|
 | Open Session Summary Dialog | Open the Session Summary dialog to generate and manage summary results.|
-| Search Current Session | Search for matching text within the current session.|
+| Search Session | Search for matching text within the current session.|
 | Share Session   | Export the current session conversation as a Markdown file for sharing and review.|
 | Enter Full Screen | Enter or exit full-screen mode for a more focused workspace.|
 | More Actions    | Open the More Actions menu for additional session options.|
@@ -243,11 +243,11 @@ Access the web hub to use Copilot through a session-oriented workflow.
 |----------------|---------|
 |Locate Session|Easily locate sessions from the session list|
 |Reorder Session|Drag a session with a mouse on PC, or long-press and swipe on mobile|
-|Search Messages within Current Session|Click [`Search Current Session`](#current-session-ui-buttons)|
+|Search Messages within Current Session|Click [`Search Session`](#current-session-ui-buttons)|
 |Search Messages Across All Sessions|Click [`Search All Sessions`](#global-controls-ui-buttons)|
-|Manage Session Lifecycle|Click [`Create New Session`](#global-controls-ui-buttons), [`Rename Session`](#session-list-more-actions), [`Delete Session`](#session-list-more-actions), [`Pin Session`](#session-list-interactions), and [`Lock Session`](#session-list-interactions)|
+|Manage Session Lifecycle|Click [`Create Session`](#global-controls-ui-buttons), [`Rename Session`](#session-list-more-actions), [`Delete Session`](#session-list-more-actions), [`Pin Session`](#session-list-interactions), and [`Lock Session`](#session-list-interactions)|
 |Export Current Session inlcuding conversation and metadata|Click [`Export Session`](#current-session-more-actions)|
-|Import Session for Rebuild|Click [`Import A Session`](#global-controls-more-actions)|
+|Import Session for Rebuild|Click [`Import Session`](#global-controls-more-actions)|
 |Copy Session Convsersation to Clipboard for Review|Click [`Copy Session`](#current-session-ui-buttons)|
 |Share Session Convsersation via MD file for Review|Click [`Share Session`](#current-session-more-actions)|
 |Clone Session for Reuse|Click [`Clone Session`](#session-list-more-actions)|
