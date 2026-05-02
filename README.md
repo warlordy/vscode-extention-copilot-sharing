@@ -1,6 +1,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Extension Quick Guide](#extension-quick-guide)
 - [Session-Oriented Workflow](#session-oriented-workflow)
 - [Framework](#framework)
   - [1. Deployment Architecture and Data Flow (Client-Host Topology)](#1-deployment-architecture-and-data-flow-client-host-topology)
@@ -12,15 +13,13 @@
    - [3. Start the Web Hub](#3-start-the-web-hub)
    - [4. Stop the Web Hub](#4-stop-the-web-hub)
    - [5. Use the Web Hub](#5-use-the-web-hub)
-      - [5.1 Launch Web Hub](#51-launch-web-hub)
+      - [5.1 Launch Web Hub on Host Device](#51-launch-web-hub-on-host-device)
       - [5.2 Global Controls](#52-global-controls)
       - [5.3 Session List Interactions](#53-session-list-interactions)
       - [5.4 Current Session Interactions](#54-current-session-interactions)
-- [Usage Examples](#usage-examples)
-   - [1. Share the Web Hub](#1-share-the-web-hub)
-   - [2. Use Copilot in the Web Hub](#2-use-copilot-in-the-web-hub)
-      - [2.1 Session Operations](#21-session-operations)
-      - [2.2 Conversation Operations](#22-conversation-operations)
+- [Use Copilot in the Web Hub](#use-copilot-in-the-web-hub)
+   - [1. Session Operations](#1-session-operations)
+   - [2. Conversation Operations](#2-conversation-operations)
 
 ## Overview
 **copilot-share** is a VS Code extension that brings Copilot from the VS Code IDE to a local web hub, delivering a streamlined user experience with reliable session operations and context management.
@@ -29,6 +28,13 @@ It can be accessed across devices on the same local area network (LAN) as the ho
 You can also share it with family, friends, coworkers, and team members.
 
 More importantly, copilot-share introduces a [session-oriented workflow](#session-oriented-workflow) designed to help teams use Copilot and other LLM products more effectively.
+
+## Extension Quick Guide
+
+1. [Install this extension](#install-extension)
+2. [Host and start the web hub](#host-and-manage-the-web-hub)
+3. [Use Copilot in the web hub](#use-copilot-in-the-web-hub)
+
 
 ## Session-Oriented Workflow
 
@@ -100,7 +106,7 @@ sequenceDiagram
 
 | Menu                 | Purpose |
 |----------------------|---------|
-| Http Service         | Show the web hub status: running state, port in use, and access control status.|
+| HTTP Service         | Show the web hub status: running state, port in use, and access control status.|
 | Start Sharing        | Start the web hub access control toggled on or off.|
 | Stop Sharing         | Stop the web hub.|
 | Open Local Web       | Open the web hub at the local URL (`http://127.0.0.1:***/`).|
@@ -249,17 +255,10 @@ sequenceDiagram
 | Retry | Resend the selected user prompt to generate a new agent response. |
 | Delete | Permanently delete selected user prompts or agent responses.|
 
-## Usage Examples
-
-### 1. Share the Web Hub
-
-1. Click `Copy Public URL` in the [control menu window](#1-open-control-menu-dialog) to access the web hub across devices or share it with family, friends, coworkers, and team members on the same LAN.
-   - This action also provides a QR code image for quick access. 
-
-### 2. Use Copilot in the Web Hub
+## Use Copilot in the Web Hub
 Access the web hub to use Copilot through a session-oriented workflow.
 
-#### 2.1 Session Operations
+### 1. Session Operations
 
 | Operation      | User Interaction |
 |----------------|---------|
@@ -268,18 +267,18 @@ Access the web hub to use Copilot through a session-oriented workflow.
 |Search Messages within Current Session|Click [`Search Session`](#current-session-ui-buttons)|
 |Search Messages Across All Sessions|Click [`Search All Sessions`](#global-controls-ui-buttons)|
 |Manage Session Lifecycle|Click [`Create Session`](#global-controls-ui-buttons), [`Rename Session`](#session-list-more-actions), [`Delete Session`](#session-list-more-actions), [`Pin Session`](#session-list-interactions), and [`Lock Session`](#session-list-interactions)|
-|Export Current Session inlcuding conversation and metadata|Click [`Export Session`](#current-session-more-actions)|
+|Export Current Session including conversation and metadata|Click [`Export Session`](#current-session-more-actions)|
 |Import Session for Rebuild|Click [`Import Session`](#global-controls-more-actions)|
-|Copy Session Convsersation to Clipboard for Review|Click [`Copy Session`](#current-session-ui-buttons)|
-|Share Session Convsersation via MD file for Review|Click [`Share Session`](#current-session-more-actions)|
+|Copy Session Conversation to Clipboard for Review|Click [`Copy Session`](#current-session-ui-buttons)|
+|Share Session Conversation via MD file for Review|Click [`Share Session`](#current-session-more-actions)|
 |Clone Session for Reuse|Click [`Clone Session`](#session-list-more-actions)|
-|Summarize Session to Remove Chat Noise and Foucs on Key Outcomes|Click [`Open Session Summary Dialog`](#current-session-ui-buttons)|
+|Summarize Session to Remove Chat Noise and Focus on Key Outcomes|Click [`Open Session Summary Dialog`](#current-session-ui-buttons)|
 |Manage Session Results|Click buttons in [`Session Summary Dialog`](#current-session-session-summary-dialog)|
 |Clear Session Conversation and Context|Click [`Clear Session`](#current-session-more-actions)|
-|Clear Only Session Conversation|Click [`Clear Context`](#current-session-more-actions)|
-|Rebuild Session Context|Click|
+|Clear Only Session Context|Click [`Clear Context`](#current-session-more-actions)|
+|Rebuild Session Context|Todo|
 
-#### 2.2 Conversation Operations
+### 2. Conversation Operations
 
 | Operation        | User Interaction |
 |------------------|---------|
