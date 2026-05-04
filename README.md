@@ -21,13 +21,20 @@
    - [1. Session Operations](#1-session-operations)
    - [2. Conversation Operations](#2-conversation-operations)
 
+
 ## Overview
-**copilot-share** is a VS Code extension that brings Copilot from the VS Code IDE to a local web hub, delivering a streamlined user experience with reliable session operations and context management.
+**copilot-share** is a VS Code extension that brings Copilot from the VS Code IDE to a local web hub, delivering a streamlined user experience with reliable session operations and context management. This extension helps you:
 
-It can be accessed across devices on the same local area network (LAN) as the host device running VS Code IDE.
-You can also share it with family, friends, coworkers, and team members.
+- Access Copilot across devices on your local network
+- Easily share with family, friends, coworkers, or teams
 
-More importantly, copilot-share introduces a [session-oriented workflow](#session-oriented-workflow) designed to help teams use Copilot and other LLM products more effectively.
+copilot-share introduces the **[session-oriented workflow](#session-oriented-workflow)** that treats prompts and sessions as reusable, reviewable work assets—just like source code. This approach helps you:
+- Organize and track LLM-driven work by objective or project
+- Build a personal or team knowledge base for smarter reuse
+- Review, refine, and share prompt sessions for better outcomes
+- Accelerate solution prototyping and AI-driven demonstrations
+
+This workflow is ideal for technical showcases, collaborative solution design, and building knowledge graphs or POC demos with AI.
 
 ## Extension Quick Guide
 
@@ -50,6 +57,7 @@ That means prompts and sessions should be:
 - Treated as core work assets, just like code and source files.
 - Reviewed with the same level of discipline used for code and source files,
   so we can confirm direction, validate objectives, find gaps early, avoid misleading outputs, and reduce the risk of accepting responses that sound convincing but are inaccurate.
+- Used to build a personal knowledge base or knowledge graph—ideal for technical showcases, solution prototyping, AI-driven demonstrations, and proof-of-concept (POC) workflows, enabling smarter reuse and accelerated innovation. 
 
 Why call it session-oriented:
 - A session is a deliberate container for multiple prompts that serve one objective. This is why I call it a session-oriented workflow: it offers a structured way to manage complex projects when prompts drive LLM-based implementation.
