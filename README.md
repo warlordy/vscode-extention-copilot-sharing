@@ -243,6 +243,7 @@ sequenceDiagram
 | Export Session  | Export the current session conversation and metadata as a Markdown file for backup, rebuild, review, or transfer.|
 | Clear Session   | Clear the current session conversation, metadata, and context.|
 | Clear Context   | Clear only the current session context while keeping messages intact.|
+| Rebuild Context | Clear and then rebuild the current session context using all existing session messages, while preserving the visible conversation state intact. |
 | Back To Session | Close the summary dialog and return to the current session header.|
 | Summarize Session Messages | Generate a concise summary of the current session to surface key topics and critical points, removing redundant noise.|
 | Open Summary in Mini Window | Open summary results in a compact mini window.|
@@ -284,7 +285,7 @@ Access the web hub to use Copilot through a session-oriented workflow.
 |Manage Session Results|Click buttons in [`Session Summary Dialog`](#current-session-session-summary-dialog)|
 |Clear Session Conversation and Context|Click [`Clear Session`](#current-session-more-actions)|
 |Clear Only Session Context|Click [`Clear Context`](#current-session-more-actions)|
-|Rebuild Session Context|Click [`Rebuild Context`](#current-session-more-actions) to rebuild backend context from all current session messages while keeping the visible conversation unchanged.|
+|Rebuild Session Context|Click [`Rebuild Context`](#current-session-more-actions)|
 
 ### 2. Conversation Operations
 
