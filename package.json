@@ -1,7 +1,13 @@
 {
   "name": "copilot-share",
+  "publisher": "warlordy",
   "displayName": "copilot-share",
   "description": "This extension hosts a local http server to share copilot",
+  "license": "MIT",
+  "homepage": "https://github.com/warlordy/vscode-extention-copilot-sharing#readme",
+  "bugs": {
+    "url": "https://github.com/warlordy/vscode-extention-copilot-sharing/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/warlordy/vscode-extention-copilot-sharing.git"
@@ -11,7 +17,16 @@
     "vscode": "^1.109.0"
   },
   "categories": [
+    "Machine Learning",
     "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "chat",
+    "lan",
+    "local-network",
+    "session",
+    "sharing"
   ],
   "activationEvents": [
     "onStartupFinished"
@@ -41,13 +56,17 @@
     "sync:web-vendor": "node scripts/sync-web-vendor.mjs",
     "postinstall": "npm run sync:web-vendor",
     "vscode:prepublish": "npm run package",
+    "vsix:package": "npx @vscode/vsce package --no-yarn",
+    "release:check-tag": "node scripts/release-tag-check.mjs",
+    "release:checklist": "npm run pretest && npm run vsix:package && npm run release:check-tag",
+    "publish:vsce": "npm run release:checklist && npx @vscode/vsce publish --no-yarn",
     "compile": "npm run sync:web-vendor && webpack",
     "watch": "npm run sync:web-vendor && webpack --watch",
     "package": "npm run sync:web-vendor && webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "lint": "eslint src",
+    "lint": "eslint \"src/**/*.ts\"",
     "test": "vscode-test"
   },
   "devDependencies": {

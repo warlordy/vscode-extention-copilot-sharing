@@ -20,7 +20,7 @@
 - [Use Copilot in the Web Hub](#use-copilot-in-the-web-hub)
    - [1. Session Operations](#1-session-operations)
    - [2. Conversation Operations](#2-conversation-operations)
-
+- [Release Checklist](#release-checklist)
 
 ## Overview
 **copilot-share** is a VS Code extension that brings Copilot from the VS Code IDE to a local web hub, delivering a streamlined user experience with reliable session operations and context management. This extension helps you:
@@ -41,7 +41,6 @@ This workflow is ideal for technical showcases, collaborative solution design, a
 1. [Install this extension](#install-extension)
 2. [Host and start the web hub](#host-and-manage-the-web-hub)
 3. [Use Copilot in the web hub](#use-copilot-in-the-web-hub)
-
 
 ## Session-Oriented Workflow
 
@@ -298,3 +297,22 @@ Access the web hub to use Copilot through a session-oriented workflow.
 | Copy Message     | Click `Copy` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
 | Favorite Message | Click `Favorite` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
 | Delete Message   | Click `Delete` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
+
+
+## Release Checklist
+
+Use this checklist before every Marketplace publish:
+
+- Confirm metadata in `package.json`: `publisher`, `version`, `license`, `homepage`, `bugs`, `categories`, `keywords`.
+- Update `CHANGELOG.md` with user-facing changes for the release version.
+- Verify web assets are packaged: run `npx @vscode/vsce package --no-yarn` and confirm `src/webapp/**` is included in the VSIX file list.
+- Run quality gates: `npm run pretest`.
+- Run automated local release checks: `npm run release:checklist`.
+- Validate tag/version alignment before publish: `npm run release:check-tag -- v<version>`.
+- Manually smoke test in Extension Development Host:
+   - Start Sharing and Stop Sharing from the control menu.
+   - Open and copy local/public URLs.
+   - Verify access control flow with `/api/access-code/verify`.
+   - Verify protected chat APIs require bearer access code when access control is enabled.
+- Install the generated VSIX locally and retest key flows on at least one second LAN device.
+- Tag the release in git, then publish with `npm run publish:vsce`.

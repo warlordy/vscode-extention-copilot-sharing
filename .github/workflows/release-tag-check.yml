@@ -1,0 +1,49 @@
+name: Release Tag Check
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      releaseTag:
+        description: Tag to validate (for example: v1.2.3)
+        required: true
+
+jobs:
+  validate-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.releaseTag }}" ]; then
+            echo "value=${{ github.event.inputs.releaseTag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate tag and changelog
+        run: npm run release:check-tag -- ${{ steps.tag.outputs.value }}
+
+      - name: Run pretest
+        run: npm run pretest
+
+      - name: Validate VSIX packaging
+        run: npm run vsix:package

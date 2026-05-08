@@ -1,9 +1,14 @@
 .vscode/**
 .vscode-test/**
+.github/**
 out/**
 node_modules/**
 src/**
+!src/webapp/
+!src/webapp/**
+scripts/**
 .gitignore
+.gitattributes
 .yarnrc
 webpack.config.js
 vsc-extension-quickstart.md
@@ -12,3 +17,5 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 **/.vscode-test.*
+copilot-share-*.vsix
+package-lock.json
