@@ -19,3 +19,5 @@ vsc-extension-quickstart.md
 **/.vscode-test.*
 copilot-share-*.vsix
 package-lock.json
+VerificationLog_*/**
+VerificationLog_*.zip
