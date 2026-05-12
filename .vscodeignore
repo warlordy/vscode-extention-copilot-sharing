@@ -4,6 +4,8 @@
 out/**
 node_modules/**
 src/**
+!src/res/
+!src/res/favicon_128.png
 !src/webapp/
 !src/webapp/**
 scripts/**

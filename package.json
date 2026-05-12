@@ -2,7 +2,7 @@
   "name": "copilot-share",
   "publisher": "warlordy",
   "displayName": "copilot-share",
-  "description": "This extension hosts a local http server to share copilot",
+  "description": "copilot-share brings Copilot to a local web hub with a session-oriented workflow",
   "license": "MIT",
   "homepage": "https://github.com/warlordy/vscode-extention-copilot-sharing#readme",
   "bugs": {
@@ -13,6 +13,7 @@
     "url": "https://github.com/warlordy/vscode-extention-copilot-sharing.git"
   },
   "version": "0.0.2",
+  "icon": "src/res/favicon_128.png",
   "engines": {
     "vscode": "^1.109.0"
   },
