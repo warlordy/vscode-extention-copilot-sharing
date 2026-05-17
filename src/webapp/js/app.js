@@ -2336,6 +2336,7 @@ function resolveModelNameById(modelId) {
 }
 
 function resolveAgentMessageModelLabel(session, message) {
+	void session;
 	const explicitName = String(message?.modelName || "").trim();
 	if (explicitName) {
 		return explicitName;
@@ -2346,12 +2347,7 @@ function resolveAgentMessageModelLabel(session, message) {
 		return resolveModelNameById(explicitId) || explicitId;
 	}
 
-	const sessionModelId = String(session?.modelId || "").trim();
-	if (sessionModelId) {
-		return resolveModelNameById(sessionModelId) || sessionModelId;
-	}
-
-	return "Unknown model";
+	return "";
 }
 
 function resolveAgentMessageModelMetadata(message) {
@@ -3851,7 +3847,7 @@ function renderMessages({ preserveScroll = false } = {}) {
 		const bubbleClass = msg.role === "agent" ? "bubble markdown" : "bubble";
 		const markdownRenderer = typeof window.renderAgentMarkdown === "function" ? window.renderAgentMarkdown : escapeHtml;
 		const modelLabel = msg.role === "agent" ? resolveAgentMessageModelLabel(active, msg) : "";
-		const modelLabelHtml = msg.role === "agent"
+		const modelLabelHtml = (msg.role === "agent" && modelLabel)
 			? `<div class="agent-model-label" title="${escapeHtml(modelLabel)}">⚡ Model: ${escapeHtml(modelLabel)}</div>`
 			: "";
 		const bubbleContent = msg.role === "agent"
