@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # draw.io 
 *.bkp
+
+# python
+__pycache__

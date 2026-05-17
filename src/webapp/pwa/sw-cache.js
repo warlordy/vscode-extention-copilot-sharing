@@ -12,7 +12,7 @@ const APP_SHELL_FILES = [
 	"./vendor/highlight.common.bundle.js",
 	"./vendor/highlight.github-dark.min.css",
 	"./vendor/github-markdown.css",
-	"./icons/favicon.svg"
+	"./icons/icon_green_background.svg"
 ];
 
 self.addEventListener("install", (event) => {
