@@ -3,17 +3,14 @@
 
 This extension helps you:
 - Access Copilot across devices on your local network
-- Easily share with family, friends, coworkers, or teams
+- Easily share Copilot budget and access seamlessly with family, friends, coworkers, and teams
 
 🚀**copilot-share** introduces the [session-oriented workflow](#session-oriented-workflow) that treats prompts and sessions as reusable, reviewable work assets—just like source code. 
 
 This approach helps you:
-- Organize and track LLM-driven work by objective or project
+- Review, refine, and share chat sessions for better outcomes
+- Organize and track LLM-driven work from initial prompts, enabling an end-to-end review workflow
 - Build a personal or team knowledge base for smarter reuse
-- Review, refine, and share prompt sessions for better outcomes
-- Accelerate solution prototyping and AI-driven demonstrations
-
-This workflow is ideal for technical showcases, collaborative solution design, and building knowledge graphs or POC demos with AI.
 
 ⛽**copilot-share** provides additional standout features. 
 
