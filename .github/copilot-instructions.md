@@ -59,6 +59,37 @@ Use README as the canonical product narrative and user scenario reference.
 - Network/auth bridge: `src/webapp/js/message.js`, `src/webapp/js/copilot-share.js`
 - Capabilities: Session management, message operations, search, summary view, prompt polish flow, import/export, and mobile-friendly behavior.
 
+**6. Runtime Request Sequence** (Open Web -> Verify Access Code -> Chat)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User (Browser)
+  participant W as Web App
+  participant S as copilot-share Server
+  participant L as VS Code Copilot
+
+  U->>W: Open Local/Public Web URL
+  W->>S: GET /api/server-info
+  S-->>W: Server status and access-control mode
+
+  alt Access control enabled
+    U->>W: Enter access code
+    W->>S: POST /api/access-code/verify
+    S-->>W: Verification result
+    W->>W: Store access code for API calls
+  else Access control disabled
+    W->>W: Continue without access code
+  end
+
+  U->>W: Send chat prompt
+  W->>S: POST /api/chat (Bearer access code if enabled)
+  S->>L: Forward prompt to Copilot model
+  L-->>S: Model response (normal or stream)
+  S-->>W: Chat response
+  W-->>U: Render assistant output
+```
+
 ## API Contract (Current)
 
 Backend endpoints in `src/network.ts`:
@@ -156,3 +187,21 @@ For code reviews in this repo, prioritize:
 - For feature work, describe both extension-side and webapp-side impact.
 - For reviews, prioritize behavioral regressions and LAN/auth safety.
 - If introducing tradeoffs, state risks and the safer alternative briefly.
+
+## Release Checklist
+
+Use this checklist before every Marketplace publish:
+
+- Confirm metadata in `package.json`: `publisher`, `version`, `license`, `homepage`, `bugs`, `categories`, `keywords`.
+- Update `CHANGELOG.md` with user-facing changes for the release version.
+- Verify web assets are packaged: run `npx @vscode/vsce package --no-yarn` and confirm `src/webapp/**` is included in the VSIX file list.
+- Run quality gates: `npm run pretest`.
+- Run automated local release checks: `npm run release:checklist`.
+- Validate tag/version alignment before publish: `npm run release:check-tag -- v<version>`.
+- Manually smoke test in Extension Development Host:
+   - Start Sharing and Stop Sharing from the control menu.
+   - Open and copy local/public URLs.
+   - Verify access control flow with `/api/access-code/verify`.
+   - Verify protected chat APIs require bearer access code when access control is enabled.
+- Install the generated VSIX locally and retest key flows on at least one second LAN device.
+- Tag the release in git, then publish with `npm run publish:vsce`.

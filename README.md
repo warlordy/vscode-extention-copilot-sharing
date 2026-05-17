@@ -1,34 +1,13 @@
-## Table of Contents
-
-- [Overview](#overview)
-- [Extension Quick Guide](#extension-quick-guide)
-- [Session-Oriented Workflow](#session-oriented-workflow)
-- [Framework](#framework)
-  - [1. Deployment Architecture and Data Flow (Client-Host Topology)](#1-deployment-architecture-and-data-flow-client-host-topology)
-  - [2. Runtime Request Sequence (Open Web -> Verify Access Code -> Chat)](#2-runtime-request-sequence-open-web---verify-access-code---chat)
-- [Install Extension](#install-extension)
-- [Host and Manage the Web Hub](#host-and-manage-the-web-hub)
-   - [1. Open Control Menu Dialog](#1-open-control-menu-dialog)
-   - [2. Control Menu Description](#2-control-menu-description)
-   - [3. Start the Web Hub](#3-start-the-web-hub)
-   - [4. Stop the Web Hub](#4-stop-the-web-hub)
-   - [5. Use the Web Hub](#5-use-the-web-hub)
-      - [5.1 Launch Web Hub on Host Device](#51-launch-web-hub-on-host-device)
-      - [5.2 Global Controls](#52-global-controls)
-      - [5.3 Session List Interactions](#53-session-list-interactions)
-      - [5.4 Current Session Interactions](#54-current-session-interactions)
-- [Use Copilot in the Web Hub](#use-copilot-in-the-web-hub)
-   - [1. Session Operations](#1-session-operations)
-   - [2. Conversation Operations](#2-conversation-operations)
-- [Release Checklist](#release-checklist)
-
 ## Overview
-**copilot-share** is a VS Code extension that brings Copilot from the VS Code IDE to a local web hub, delivering a streamlined user experience with reliable session operations and context management. This extension helps you:
+🚢**copilot-share** is a VS Code extension that brings Copilot from the VS Code IDE to a local web hub, delivering a streamlined user experience through robust session/conversation operations and reliable context management. 
 
+This extension helps you:
 - Access Copilot across devices on your local network
 - Easily share with family, friends, coworkers, or teams
 
-copilot-share introduces the **[session-oriented workflow](#session-oriented-workflow)** that treats prompts and sessions as reusable, reviewable work assets—just like source code. This approach helps you:
+🚀**copilot-share** introduces the [session-oriented workflow](#session-oriented-workflow) that treats prompts and sessions as reusable, reviewable work assets—just like source code. 
+
+This approach helps you:
 - Organize and track LLM-driven work by objective or project
 - Build a personal or team knowledge base for smarter reuse
 - Review, refine, and share prompt sessions for better outcomes
@@ -36,11 +15,30 @@ copilot-share introduces the **[session-oriented workflow](#session-oriented-wor
 
 This workflow is ideal for technical showcases, collaborative solution design, and building knowledge graphs or POC demos with AI.
 
-## Extension Quick Guide
+⛽**copilot-share** provides additional standout features. 
+
+- Process user prompts from multiple chat sessions concurrently
+- Provide a Prompt Polish button to help users start using Copilot from draft prompts.
+- PWA‑enabled webpage for native‑app‑like installation and usage
+
+⚙️**copilot-share** operates in a simple [framework](#framework).
+
+♨️Get started with **copilot-share** using the quick guide below.
 
 1. [Install this extension](#install-extension)
-2. [Host and start the web hub](#host-and-manage-the-web-hub)
-3. [Use Copilot in the web hub](#use-copilot-in-the-web-hub)
+2. [Host and Manage the web hub](#host-and-manage-the-web-hub)
+   - [1. Open Control Menu Dialog](#1-open-control-menu-dialog)
+   - [2. Control Menu Description](#2-control-menu-description)
+   - [3. Start the Web Hub](#3-start-the-web-hub)
+   - [4. Stop the Web Hub](#4-stop-the-web-hub)
+   - [5. Use the Web Hub](#5-use-the-web-hub)
+      - [5.1 Launch Web Hub on Host Device](#51-launch-web-hub-on-host-device)
+      - [5.2 Global Controls](#52-global-controls)
+      - [5.3 Session Operation Buttons](#53-session-operation-buttons)
+      - [5.4 Conversation Operation Buttons](#54-conversation-operation-buttons)
+3. [Use Copilot in the Web Page](#use-copilot-in-the-web-page)
+   - [1. Session Operation Examples](#1-session-operation-examples)
+   - [2. Conversation Operation Examples](#2-conversation-operation-examples)
 
 ## Session-Oriented Workflow
 
@@ -58,48 +56,18 @@ That means prompts and sessions should be:
   so we can confirm direction, validate objectives, find gaps early, avoid misleading outputs, and reduce the risk of accepting responses that sound convincing but are inaccurate.
 - Used to build a personal knowledge base or knowledge graph—ideal for technical showcases, solution prototyping, AI-driven demonstrations, and proof-of-concept (POC) workflows, enabling smarter reuse and accelerated innovation. 
 
-Why call it session-oriented:
+Why call it session-oriented?
 - A session is a deliberate container for multiple prompts that serve one objective. This is why I call it a session-oriented workflow: it offers a structured way to manage complex projects when prompts drive LLM-based implementation.
 
 ## Framework
 
-### 1. Deployment Architecture and Data Flow (Client-Host Topology)
+- **Client-Host Topology**
 
 <img src="src/doc/readme/framework-deployment-dataflow.drawio.png" alt="Deployment architecture and data flow" style="display: block; width: min(100%, 760px); height: auto; margin-top: 0.45rem; border: 1px solid #d0d7de; border-radius: 8px; background: #ffffff;" />
 
-### 2. Runtime Request Sequence (Open Web -> Verify Access Code -> Chat)
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant U as User (Browser)
-  participant W as Web App
-  participant S as copilot-share Server
-  participant L as VS Code Copilot
-
-  U->>W: Open Local/Public Web URL
-  W->>S: GET /api/server-info
-  S-->>W: Server status and access-control mode
-
-  alt Access control enabled
-    U->>W: Enter access code
-    W->>S: POST /api/access-code/verify
-    S-->>W: Verification result
-    W->>W: Store access code for API calls
-  else Access control disabled
-    W->>W: Continue without access code
-  end
-
-  U->>W: Send chat prompt
-  W->>S: POST /api/chat (Bearer access code if enabled)
-  S->>L: Forward prompt to Copilot model
-  L-->>S: Model response (normal or stream)
-  S-->>W: Chat response
-  W-->>U: Render assistant output
-```
 
 ## Install Extension
-1. Install copilot-share by clicking the VS Code extensions icon (<img src="src/doc/readme/vscode-extensions-icon.png" alt="vscode-extensions-icon" style="height: 1.2em; vertical-align: -0.15em;" />) and searching for `copilot share`.
+1. Install copilot-share by clicking the VS Code extensions icon (<img src="src/doc/readme/vscode-extensions-icon.png" alt="vscode-extensions-icon" style="height: 1.2em; vertical-align: -0.15em;" />) and searching for `"copilot share"`.
 2. After installation completes, the status bar will show the extension icon (<img src="src/doc/readme/status-bar-icon.png" alt="status-bar-icon" style="height: 1.2em; vertical-align: -0.15em;" />).
 
 ## Host and Manage the Web Hub
@@ -114,7 +82,7 @@ sequenceDiagram
 | Menu                 | Purpose |
 |----------------------|---------|
 | HTTP Service         | Show the web hub status: running state, port in use, and access control status.|
-| Start Sharing        | Start the web hub access control toggled on or off.|
+| Start Sharing        | Start the web hub with access control toggled on or off.|
 | Stop Sharing         | Stop the web hub.|
 | Open Local Web       | Open the web hub at the local URL (`http://127.0.0.1:***/`).|
 | Copy Local URL       | Copy the local web hub URL.|
@@ -128,7 +96,7 @@ sequenceDiagram
 ### 3. Start the Web Hub
 
 - Click `Start Sharing` in the control menu to start the web hub. 
-   - copilot-share lets you enable or disable the access control for local network (LAN) usage.
+   - copilot-share lets you enable or disable access control for local area network (LAN) usage.
    <img src="src/doc/readme/control-menu-access-control.png" alt="control-menu-access-control" style="display: block; width: min(100%, 520px); height: auto; margin-top: 0.45rem; border: 1px solid #d0d7de; border-radius: 8px;" />
 
 ### 4. Stop the Web Hub
@@ -169,7 +137,7 @@ sequenceDiagram
 | Copy Public URL      | Copy the LAN-accessible web hub URL for quick sharing to other devices.|
 | Open Public URL      | Open the LAN-accessible web hub URL in your browser.|
 
-#### 5.3 Session List Interactions
+#### 5.3 Session Operation Buttons
 
 <a id="session-list-interactions"></a>
 
@@ -192,7 +160,7 @@ sequenceDiagram
 | Clone Session  | Duplicate this session with its full context for fast reuse.|
 | Delete Session | Permanently remove this session when it is no longer needed.|
 
-#### 5.4 Current Session Interactions
+#### 5.4 Conversation Operation Buttons
 
 <a id="current-session-ui-buttons"></a>
 
@@ -263,10 +231,10 @@ sequenceDiagram
 | Retry | Resend the selected user prompt to generate a new agent response. |
 | Delete | Permanently delete selected user prompts or agent responses.|
 
-## Use Copilot in the Web Hub
+## Use Copilot in the Web Page
 Access the web hub to use Copilot through a session-oriented workflow.
 
-### 1. Session Operations
+### 1. Session Operation Examples
 
 | Operation      | User Interaction |
 |----------------|---------|
@@ -286,7 +254,7 @@ Access the web hub to use Copilot through a session-oriented workflow.
 |Clear Only Session Context|Click [`Clear Context`](#current-session-more-actions)|
 |Rebuild Session Context|Click [`Rebuild Context`](#current-session-more-actions)|
 
-### 2. Conversation Operations
+### 2. Conversation Operation Examples
 
 | Operation        | User Interaction |
 |------------------|---------|
@@ -298,21 +266,3 @@ Access the web hub to use Copilot through a session-oriented workflow.
 | Favorite Message | Click `Favorite` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
 | Delete Message   | Click `Delete` in the [`user prompt context menu`](#user-prompt-context-menu) or [`agent response context menu`](#agent-response-context-menu)|
 
-
-## Release Checklist
-
-Use this checklist before every Marketplace publish:
-
-- Confirm metadata in `package.json`: `publisher`, `version`, `license`, `homepage`, `bugs`, `categories`, `keywords`.
-- Update `CHANGELOG.md` with user-facing changes for the release version.
-- Verify web assets are packaged: run `npx @vscode/vsce package --no-yarn` and confirm `src/webapp/**` is included in the VSIX file list.
-- Run quality gates: `npm run pretest`.
-- Run automated local release checks: `npm run release:checklist`.
-- Validate tag/version alignment before publish: `npm run release:check-tag -- v<version>`.
-- Manually smoke test in Extension Development Host:
-   - Start Sharing and Stop Sharing from the control menu.
-   - Open and copy local/public URLs.
-   - Verify access control flow with `/api/access-code/verify`.
-   - Verify protected chat APIs require bearer access code when access control is enabled.
-- Install the generated VSIX locally and retest key flows on at least one second LAN device.
-- Tag the release in git, then publish with `npm run publish:vsce`.
