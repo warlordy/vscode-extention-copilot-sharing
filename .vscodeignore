@@ -4,15 +4,12 @@
 out/**
 node_modules/**
 src/**
-!src/res/
 !src/res/icon_green_background_128.png
-!src/doc/
-!src/doc/readme/
-!src/doc/readme/**
 src/res/__pycache__/**
 **/__pycache__/**
 !src/webapp/
 !src/webapp/**
+src/webapp/README.md
 scripts/**
 .gitignore
 .gitattributes
