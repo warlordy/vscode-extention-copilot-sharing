@@ -6,6 +6,12 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-05-24
+
+- Improve README content and formatting for clearer product messaging and quicker onboarding.
+- Add a Quick Start demo GIF and refresh external documentation media links.
+- Update extension branding with a new square icon asset.
+
 ## [0.0.3] - 2026-05-18
 
 - Refine README overview wording for clearer session-oriented workflow messaging.
