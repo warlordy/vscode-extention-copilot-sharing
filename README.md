@@ -2,6 +2,8 @@
 
 Copilot Share brings VS Code Copilot to a local LAN web hub with [session-oriented workflow](#session-oriented-workflow).
 
+[Quick Start Demo](src/doc/readme/copilot-share-screen-recording-quickstart.gif)
+
 ## Why Try Copilot Share
 
 1. Use Copilot on phones, tablets, laptops, and other devices on the same local network.
@@ -38,10 +40,9 @@ Why call it session-oriented?
 ## Quick Start
 
 1. Install the extension from the VS Code Marketplace.
-2. Click the status bar icon to open the control menu.
+2. Click the status bar icon (`Copilot Share`) to open the control menu.
 3. Select `Start Sharing` and choose whether to enable access control.
-4. Open Local Web on the host, or copy the Public URL for another device on your LAN.
-   - If access control is enabled, enter the access code in the web app.
+4. Select `Open Local Web` on the host, or select `Copy Public URL` to share Copilot across your LAN.
 5. Start chatting.
    1. Create or open a session.
    2. Send prompts, retry prompts, and polish drafts when needed.
